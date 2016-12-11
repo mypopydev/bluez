@@ -65,10 +65,10 @@ void bt_client_ready(GAsyncQueue *event_queue)
 void bt_client_disconn(GAsyncQueue *event_queue)
 {
 
-        BTEvent *event = g_slice_new0 (BTEvent);
+        BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_CLIENT_DISCONN;
 
-        g_async_queue_push (event_queue, event);
+        g_async_queue_push(event_queue, event);
 }
 
 void bt_add_stop_event(GAsyncQueue *event_queue)
@@ -85,21 +85,21 @@ void bt_device_old(GAsyncQueue *event_queue, Device *dev)
         event->event_type = BT_EVENT_DEVICE_OLD;
         event->payload = dev;
 
-        g_async_queue_push (event_queue, event);
+        g_async_queue_push(event_queue, event);
 }
 
 void bt_device_new(GAsyncQueue *event_queue, Device *dev)
  {
-        BTEvent *event = g_slice_new0 (BTEvent);
+        BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_DEVICE_NEW;
         event->payload = dev;
 
-        g_async_queue_push (event_queue, event);
+        g_async_queue_push(event_queue, event);
 }
 
 void bt_device_chg(GAsyncQueue *event_queue, Device *dev)
 {
-        BTEvent *event = g_slice_new0 (BTEvent);
+        BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_DEVICE_CHG;
         event->payload = dev;
 
@@ -108,10 +108,10 @@ void bt_device_chg(GAsyncQueue *event_queue, Device *dev)
 
 void bt_device_del(GAsyncQueue *event_queue, Device *dev)
 {
-        BTEvent *event = g_slice_new0 (BTEvent);
+        BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_DEVICE_DEL;
         event->payload = dev;
 
-        g_async_queue_push (event_queue, event);
+        g_async_queue_push(event_queue, event);
 }
 

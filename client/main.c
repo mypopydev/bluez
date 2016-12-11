@@ -77,6 +77,7 @@ static GDBusProxy *ad_manager;
 static GList *ctrl_list;
 
 GList *device_list = NULL;
+GHashTable *device_hash = NULL;
 
 static guint input = 0;
 
@@ -183,10 +184,25 @@ static Device *find_device_by_address(GList *source, const char *address)
 	return NULL;
 }
 
+void release_key(gpointer data)
+{
+        char *address = data;
+        free(address);
+}
+
+void release_value(gpointer data)
+{
+        Device *dev = data;
+        g_slice_free (Device, dev);
+}
+
 static gpointer state_handle(gpointer data)
 {
         GAsyncQueue *async_queue = data;
         BTEvent *event;
+        Device *dev = NULL;
+        Device *device = NULL;
+        char *address = NULL;
 
         while (event = g_async_queue_pop (async_queue)) {
                 switch (event->event_type) {
@@ -201,9 +217,21 @@ static gpointer state_handle(gpointer data)
                         break;
 
                 case BT_EVENT_DEVICE_OLD:
+                        dev = event->payload;
+                        device = g_slice_dup(Device, dev);
+                        address = strdup(dev->address);
+                        g_hash_table_insert(device_hash,
+                                            address,
+                                            device);
                         break;
 
                 case BT_EVENT_DEVICE_NEW:
+                        dev = event->payload;
+                        device = g_slice_dup(Device, dev);
+                        address = strdup(dev->address);
+                        g_hash_table_insert(device_hash,
+                                            address,
+                                            device);
                         break;
 
                 case BT_EVENT_DEVICE_DEL:
@@ -2552,6 +2580,10 @@ int main(int argc, char *argv[])
 	dbus_conn = g_dbus_setup_bus(DBUS_BUS_SYSTEM, NULL, NULL);
         async_queue = g_async_queue_new ();
         state_thread = g_thread_new("state thread", state_handle, async_queue);
+        device_hash = g_hash_table_new_full(g_str_hash,
+                                            g_str_equal,
+                                            release_key,
+                                            release_value);
 
 	setlinebuf(stdout);
 	rl_attempted_completion_function = cmd_completion;
