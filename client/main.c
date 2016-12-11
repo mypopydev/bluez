@@ -170,18 +170,36 @@ static void connect_device(char *bdaddr)
 	write(fileno(stdin), cmd, strlen(cmd));
 }
 
-static Device *find_device_by_address(GList *source, const char *address)
+static Device *find_device_by_address(GHashTable *hash_table, const char *address)
 {
-	GList *list;
+        GHashTableIter iter;
+        gpointer key, value;
+        char *addr = key;
+        Device *device = value;
 
-	for (list = g_list_first(source); list; list = g_list_next(list)) {
-		Device *device = list->data;
-
-		if (!strcmp(device->address, address))
+        g_hash_table_iter_init(&iter, hash_table);
+        while (g_hash_table_iter_next(&iter, &key, &value)) {
+                if (!strcmp(addr, address))
 			return device;
-	}
+        }
 
-	return NULL;
+        return NULL;
+}
+
+static Device *find_device_by_name(GHashTable *hash_table, const char *name)
+{
+        GHashTableIter iter;
+        gpointer key, value;
+        char *addr = key;
+        Device *device = value;
+
+        g_hash_table_iter_init(&iter, hash_table);
+        while (g_hash_table_iter_next(&iter, &key, &value)) {
+                if (match(name, device->name))
+			return device;
+        }
+
+        return NULL;
 }
 
 void release_key(gpointer data)
@@ -218,26 +236,33 @@ static gpointer state_handle(gpointer data)
 
                 case BT_EVENT_DEVICE_OLD:
                         dev = event->payload;
+                        /* XXX: Find the ours device */
                         device = g_slice_dup(Device, dev);
                         address = strdup(dev->address);
                         g_hash_table_insert(device_hash,
                                             address,
                                             device);
+                        /* Connect the device */
                         break;
 
                 case BT_EVENT_DEVICE_NEW:
+                        /* XXX: Find the ours device */
                         dev = event->payload;
                         device = g_slice_dup(Device, dev);
                         address = strdup(dev->address);
                         g_hash_table_insert(device_hash,
                                             address,
                                             device);
+                        /* Connect the device */
                         break;
 
                 case BT_EVENT_DEVICE_DEL:
+                        g_hash_table_remove(device_hash,
+                                            dev->address);
                         break;
 
                 case BT_EVENT_DEVICE_CHG:
+                        /* Update the device status ? */
                         break;
 
                 default:
