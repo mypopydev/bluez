@@ -65,10 +65,10 @@ struct _Device {
 typedef struct _Device Device;
 
 
-void bt_event_free (BTEvent *event);
+void bt_event_free(BTEvent *event);
 
-void bt_client_ready (GAsyncQueue *event_queue);
-void bt_client_disconn (GAsyncQueue *event_queue);
+void bt_client_ready(GAsyncQueue *event_queue);
+void bt_client_disconn(GAsyncQueue *event_queue);
 
 void bt_device_old(GAsyncQueue *event_queue, Device *dev);
 void bt_device_new(GAsyncQueue *event_queue, Device *dev);

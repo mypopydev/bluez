@@ -76,6 +76,8 @@ static GDBusProxy *default_attr;
 static GDBusProxy *ad_manager;
 static GList *ctrl_list;
 
+GList *device_list = NULL;
+
 static guint input = 0;
 
 static const char * const agent_arguments[] = {
@@ -167,6 +169,20 @@ static void connect_device(char *bdaddr)
 	write(fileno(stdin), cmd, strlen(cmd));
 }
 
+static Device *find_device_by_address(GList *source, const char *address)
+{
+	GList *list;
+
+	for (list = g_list_first(source); list; list = g_list_next(list)) {
+		Device *device = list->data;
+
+		if (!strcmp(device->address, address))
+			return device;
+	}
+
+	return NULL;
+}
+
 static gpointer state_handle(gpointer data)
 {
         GAsyncQueue *async_queue = data;
@@ -181,6 +197,19 @@ static gpointer state_handle(gpointer data)
                         discoverable_on();
                         pairable_on();
                         scan_on();
+                        list_devices();
+                        break;
+
+                case BT_EVENT_DEVICE_OLD:
+                        break;
+
+                case BT_EVENT_DEVICE_NEW:
+                        break;
+
+                case BT_EVENT_DEVICE_DEL:
+                        break;
+
+                case BT_EVENT_DEVICE_CHG:
                         break;
 
                 default:
@@ -305,7 +334,8 @@ static void print_device(GDBusProxy *proxy, const char *description)
 				description ? "] " : "",
 				address, name);
 
-        Device *dev = g_slice_new0 (Device);
+        /* handle the device list */
+        Device *dev = g_slice_new0(Device);
         snprintf(dev->name, sizeof(dev->name), "%s", name);
         snprintf(dev->address, sizeof(dev->address), "%s", address);
         if (description == NULL) {
