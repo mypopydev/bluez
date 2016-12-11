@@ -45,6 +45,7 @@
 #include "display.h"
 #include "gatt.h"
 #include "advertising.h"
+#include "event.h"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -56,6 +57,9 @@
 
 static GMainLoop *main_loop;
 static DBusConnection *dbus_conn;
+
+static GAsyncQueue *async_queue = NULL;
+static GThread *state_thread = NULL;
 
 static GDBusProxy *agent_manager;
 static char *auto_register_agent = NULL;
@@ -91,6 +95,18 @@ static const char * const ad_arguments[] = {
 	"broadcast",
 	NULL
 };
+
+static gpointer state_handle(gpointer data)
+{
+        GAsyncQueue *async_queue = data;
+        BTEvent *event;
+
+        while (event = g_async_queue_pop (async_queue)) {
+
+        }
+
+        return NULL;
+}
 
 static void proxy_leak(gpointer data)
 {
@@ -2406,6 +2422,8 @@ int main(int argc, char *argv[])
 
 	main_loop = g_main_loop_new(NULL, FALSE);
 	dbus_conn = g_dbus_setup_bus(DBUS_BUS_SYSTEM, NULL, NULL);
+        async_queue = g_async_queue_new ();
+        state_thread = g_thread_new("state thread", state_handle, async_queue);
 
 	setlinebuf(stdout);
 	rl_attempted_completion_function = cmd_completion;
