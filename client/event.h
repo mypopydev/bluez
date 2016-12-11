@@ -54,7 +54,7 @@ enum _BTEventType
         */
         BT_EVENT_REQ_PIN_CODE,
         BT_EVENT_REQ_PASS_KEY,
-        BT_EVNET_REQ_CONFIRM,
+        BT_EVENT_REQ_CONFIRM,
         BT_EVENT_REQ_AUTH,
 };
 
