@@ -36,6 +36,7 @@ enum _BTEventType
                                */
         BT_EVENT_CLIENT_DISCONN, /* Can't connect with the dbus */
 
+        BT_EVENT_DEVICE_OLD,   /* Used "devices" get the device */
         BT_EVENT_DEVICE_NEW,   /* A new client
                                   pair <remote_device_MAC@>
                                   connect <remote_device_MAC@> */
@@ -45,16 +46,33 @@ enum _BTEventType
 
 typedef enum _BTEventType BTEventType;
 
-struct _BTEvent
-{
+struct _BTEvent {
         BTEventType event_type;
         gpointer    payload;
 };
-
 typedef struct _BTEvent BTEvent;
+
+struct _Device {
+        char address[64];
+        char name[64];
+
+        int  paired;
+        int  tructed;
+        int  blocked;
+        int  connected;
+};
+
+typedef struct _Device Device;
 
 
 void bt_event_free (BTEvent *event);
+
 void bt_client_ready (GAsyncQueue *event_queue);
 void bt_client_disconn (GAsyncQueue *event_queue);
+
+void bt_device_old(GAsyncQueue *event_queue, Device *dev);
+void bt_device_new(GAsyncQueue *event_queue, Device *dev);
+void bt_device_chg(GAsyncQueue *event_queue, Device *dev);
+void bt_device_del(GAsyncQueue *event_queue, Device *dev);
+
 #endif /* __EVENT_H__ */

@@ -46,6 +46,7 @@
 #include "gatt.h"
 #include "advertising.h"
 #include "event.h"
+#include "match.h"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -303,6 +304,17 @@ static void print_device(GDBusProxy *proxy, const char *description)
 				description ? : "",
 				description ? "] " : "",
 				address, name);
+
+        Device *dev = g_slice_new0 (Device);
+        snprintf(dev->name, sizeof(dev->name), "%s", name);
+        snprintf(dev->address, sizeof(dev->address), "%s", address);
+        if (description == NULL) {
+                bt_device_old(async_queue, dev);
+        } else if (match("NEW", description)) {
+                bt_device_new(async_queue, dev);
+        } else {
+                bt_device_del(async_queue, dev);
+        }
 }
 
 static void print_iter(const char *label, const char *name,
