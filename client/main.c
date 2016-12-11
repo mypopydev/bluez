@@ -317,8 +317,16 @@ static gpointer state_handle(gpointer data)
                                 g_hash_table_insert(device_hash,
                                                     address,
                                                     device);
+
+                                switch (dev_type) {
+                                case TYPE_RBP:
+                                        trust_device(address);
+                                        connect_device(address);
+                                        break;
+                                default:
+                                        break;
+                                }
                         }
-                        /* Connect the device */
                         break;
 
                 case BT_EVENT_DEVICE_NEW:
@@ -334,8 +342,17 @@ static gpointer state_handle(gpointer data)
                                 g_hash_table_insert(device_hash,
                                                     address,
                                                     device);
+
+                                switch (dev_type) {
+                                case TYPE_RBP:
+                                        trust_device(address);
+                                        connect_device(address);
+                                        break;
+                                default:
+                                        break;
+                                }
                         }
-                        /* Connect the device */
+
                         break;
 
                 case BT_EVENT_DEVICE_DEL:
