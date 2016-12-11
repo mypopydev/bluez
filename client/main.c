@@ -96,13 +96,97 @@ static const char * const ad_arguments[] = {
 	NULL
 };
 
+static void power_on()
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "power on\n");
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
+static void agent_on()
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "agent on\n");
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
+static void default_agent()
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "default-agent\n");
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
+static void discoverable_on()
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "discoverable on\n");
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
+static void pairable_on()
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "pairable on\n");
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
+static void scan_on()
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "scan on\n");
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
+static void list_devices()
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "devices\n");
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
+static void pair_device(char *bdaddr)
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "pair %s\n", bdaddr);
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
+static void trust_device(char *bdaddr)
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "trust %s\n", bdaddr);
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
+static void connect_device(char *bdaddr)
+{
+	char cmd[128] = {0};
+	snprintf(cmd, sizeof(cmd), "connect %s\n", bdaddr);
+	write(fileno(stdin), cmd, strlen(cmd));
+}
+
 static gpointer state_handle(gpointer data)
 {
         GAsyncQueue *async_queue = data;
         BTEvent *event;
 
         while (event = g_async_queue_pop (async_queue)) {
+                switch (event->event_type) {
+                case BT_EVENT_CLIENT_READY:
+                        power_on();
+                        agent_on();
+                        default_agent();
+                        discoverable_on();
+                        pairable_on();
+                        scan_on();
+                        break;
 
+                default:
+                        break;
+                }
+
+                bt_event_free (event);
         }
 
         return NULL;
@@ -151,6 +235,8 @@ static void connect_handler(DBusConnection *connection, void *user_data)
 	printf("\r");
 	rl_on_new_line();
 	rl_redisplay();
+
+        bt_client_ready(async_queue);
 }
 
 static void disconnect_handler(DBusConnection *connection, void *user_data)

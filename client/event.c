@@ -49,24 +49,39 @@ void bt_event_free (BTEvent *event)
         }
 }
 
-static void
-bt_add_start_event (GAsyncQueue *event_queue)
+void bt_client_ready (GAsyncQueue *event_queue)
 {
 
-  BTEvent *event = g_slice_new0 (BTEvent);
-  /*
-  event->event_type = RTP_DTMF_EVENT_TYPE_START;
+        BTEvent *event = g_slice_new0 (BTEvent);
+        event->event_type = BT_EVENT_CLIENT_READY;
+        /*
+          event->event_type = RTP_DTMF_EVENT_TYPE_START;
 
-  event->payload = g_slice_new0 (GstRTPDTMFPayload);
-  event->payload->event = CLAMP (event_number, MIN_EVENT, MAX_EVENT);
-  event->payload->volume = CLAMP (event_volume, MIN_VOLUME, MAX_VOLUME);
-  */
+          event->payload = g_slice_new0 (GstRTPDTMFPayload);
+          event->payload->event = CLAMP (event_number, MIN_EVENT, MAX_EVENT);
+          event->payload->volume = CLAMP (event_volume, MIN_VOLUME, MAX_VOLUME);
+        */
 
-  g_async_queue_push (event_queue, event);
+        g_async_queue_push (event_queue, event);
 }
 
-static void
-bt_add_stop_event (GAsyncQueue *event_queue)
+void bt_client_disconn (GAsyncQueue *event_queue)
+{
+
+        BTEvent *event = g_slice_new0 (BTEvent);
+        event->event_type = BT_EVENT_CLIENT_DISCONN;
+        /*
+          event->event_type = RTP_DTMF_EVENT_TYPE_START;
+
+          event->payload = g_slice_new0 (GstRTPDTMFPayload);
+          event->payload->event = CLAMP (event_number, MIN_EVENT, MAX_EVENT);
+          event->payload->volume = CLAMP (event_volume, MIN_VOLUME, MAX_VOLUME);
+        */
+
+        g_async_queue_push (event_queue, event);
+}
+
+void bt_add_stop_event (GAsyncQueue *event_queue)
 {
 
   BTEvent *event = g_slice_new0 (BTEvent);

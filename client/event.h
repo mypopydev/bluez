@@ -25,8 +25,22 @@
 
 enum _BTEventType
 {
-        BT_EVENT_DBUS_OK,
-        BT_EVENT_DBUS_DISCPNNECT,
+        BT_EVENT_CLIENT_READY, /* Client ready, connected to bluez with dbus
+                                  power on
+                                  agent on
+                                  default-agent
+                                  discoverable on
+                                  pairable on
+                                  scan on
+                                  devices
+                               */
+        BT_EVENT_CLIENT_DISCONN, /* Can't connect with the dbus */
+
+        BT_EVENT_DEVICE_NEW,   /* A new client
+                                  pair <remote_device_MAC@>
+                                  connect <remote_device_MAC@> */
+        BT_EVENT_DEVICE_CHG,   /* */
+        BT_EVENT_DEVICE_DEL,   /* */
 };
 
 typedef enum _BTEventType BTEventType;
@@ -39,4 +53,8 @@ struct _BTEvent
 
 typedef struct _BTEvent BTEvent;
 
+
+void bt_event_free (BTEvent *event);
+void bt_client_ready (GAsyncQueue *event_queue);
+void bt_client_disconn (GAsyncQueue *event_queue);
 #endif /* __EVENT_H__ */
