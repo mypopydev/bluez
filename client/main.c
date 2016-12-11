@@ -79,6 +79,75 @@ static GList *ctrl_list;
 GList *device_list = NULL;
 GHashTable *device_hash = NULL;
 
+
+#define NELEMS(array) (sizeof(array) / sizeof(array[0]))
+
+struct device_key {
+        enum BTTYPE type;
+        char regex[128];     /* match ours devices */
+};
+
+struct device_key device_keys[] = {
+	{
+		.type = TYPE_NONE,
+		.regex = "unknown",
+	},
+
+	{
+		.type = TYPE_RBP,
+		.regex = "PBP",
+	},
+
+	{
+		.type = TYPE_MODEM_CLIP,
+		.regex = "+CLIP",
+	},
+
+	{
+		.type = TYPE_MODEM_NO_CARRIER,
+		.regex = "NO CARRIER",
+	},
+
+	{
+		.type = TYPE_MODEM_NO_ANSWER,
+		.regex = "NO ANSWER",
+	},
+
+	{
+		.type = TYPE_MODEM_BUSY,
+		.regex = "BUSY",
+	},
+
+	{
+		.type = TYPE_MODEM_OK,
+		.regex = "OK",
+	},
+
+	{
+		.type = TYPE_MODEM_ERROR,
+		.regex = "ERROR",
+	},
+
+	{
+		.type = TYPE_MODEM_SMS,
+		.regex = "+CMTI: \"SM\"",
+	},
+};
+
+static enum BTTYPE find_bt_type(char *buf, int size, struct device_key *devices, int num)
+{
+	int i;
+
+	for (i = 0; i < num; i++) {
+		if (match(devices[i].regex, buf)) {
+			return devices[i].type;
+		}
+	}
+
+	return TYPE_NONE;
+}
+
+
 static guint input = 0;
 
 static const char * const agent_arguments[] = {
@@ -221,6 +290,7 @@ static gpointer state_handle(gpointer data)
         Device *dev = NULL;
         Device *device = NULL;
         char *address = NULL;
+        enum BTTYPE dev_type = TYPE_NONE;
 
         while (event = g_async_queue_pop (async_queue)) {
                 switch (event->event_type) {
@@ -236,23 +306,35 @@ static gpointer state_handle(gpointer data)
 
                 case BT_EVENT_DEVICE_OLD:
                         dev = event->payload;
-                        /* XXX: Find the ours device */
-                        device = g_slice_dup(Device, dev);
-                        address = strdup(dev->address);
-                        g_hash_table_insert(device_hash,
-                                            address,
-                                            device);
+                        dev_type = find_bt_type(dev->address,
+                                                strlen(dev->address),
+                                                device_keys,
+                                                NELEMS(device_keys));
+                        if (dev_type != TYPE_NONE) {
+                                dev->type = dev_type;
+                                device = g_slice_dup(Device, dev);
+                                address = strdup(dev->address);
+                                g_hash_table_insert(device_hash,
+                                                    address,
+                                                    device);
+                        }
                         /* Connect the device */
                         break;
 
                 case BT_EVENT_DEVICE_NEW:
-                        /* XXX: Find the ours device */
                         dev = event->payload;
-                        device = g_slice_dup(Device, dev);
-                        address = strdup(dev->address);
-                        g_hash_table_insert(device_hash,
-                                            address,
-                                            device);
+                        dev_type = find_bt_type(dev->address,
+                                                strlen(dev->address),
+                                                device_keys,
+                                                NELEMS(device_keys));
+                        if (dev_type != TYPE_NONE) {
+                                dev->type = dev_type;
+                                device = g_slice_dup(Device, dev);
+                                address = strdup(dev->address);
+                                g_hash_table_insert(device_hash,
+                                                    address,
+                                                    device);
+                        }
                         /* Connect the device */
                         break;
 
