@@ -25,6 +25,9 @@
 
 enum _BTEventType
 {
+        /*
+          client status change
+         */
         BT_EVENT_CLIENT_READY, /* Client ready, connected to bluez with dbus
                                   power on
                                   agent on
@@ -36,12 +39,23 @@ enum _BTEventType
                                */
         BT_EVENT_CLIENT_DISCONN, /* Can't connect with the dbus */
 
+        /*
+          device status change
+         */
         BT_EVENT_DEVICE_OLD,   /* Used "devices" get the device */
         BT_EVENT_DEVICE_NEW,   /* A new client
                                   pair <remote_device_MAC@>
                                   connect <remote_device_MAC@> */
         BT_EVENT_DEVICE_CHG,   /* */
         BT_EVENT_DEVICE_DEL,   /* */
+
+        /*
+           pairing and connecting
+        */
+        BT_EVENT_REQ_PIN_CODE,
+        BT_EVENT_REQ_PASS_KEY,
+        BT_EVNET_REQ_CONFIRM,
+        BT_EVENT_REQ_AUTH,
 };
 
 typedef enum _BTEventType BTEventType;
