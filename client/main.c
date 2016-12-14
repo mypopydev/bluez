@@ -175,6 +175,21 @@ static const char * const ad_arguments[] = {
 	NULL
 };
 
+void print_key_value(gpointer key, gpointer value, gpointer user_data)
+{
+	LOG("%s \n", key);
+	Device *dev = value;
+	printf("    %s %s \n    paired: %d tructed: %d blocked: %d connected: %d type: %d\n" , 
+	       dev->address, dev->name, dev->paired, dev->tructed, dev->blocked, dev->connected, dev->type);
+}
+
+void display_hash_table(GHashTable *table)
+{
+	LOG("Hash star ---> \n");
+	g_hash_table_foreach(table, print_key_value, NULL);
+	LOG("Hash end  ---> \n");
+}
+
 static void power_on()
 {
         CMD *event = g_slice_new0 (CMD);
@@ -424,7 +439,7 @@ static gpointer state_handle(gpointer data)
                                 g_hash_table_insert(device_hash,
                                                     address,
                                                     device);
-
+				display_hash_table(device_hash);
                                 switch (dev_type) {
                                 case TYPE_RBP:
                                         trust_device(address);
@@ -449,7 +464,7 @@ static gpointer state_handle(gpointer data)
                                 g_hash_table_insert(device_hash,
                                                     address,
                                                     device);
-
+				display_hash_table(device_hash);
                                 switch (dev_type) {
                                 case TYPE_RBP:
                                         trust_device(address);
@@ -465,6 +480,7 @@ static gpointer state_handle(gpointer data)
                 case BT_EVENT_DEVICE_DEL:
                         g_hash_table_remove(device_hash,
                                             dev->address);
+			display_hash_table(device_hash);
                         break;
 
                 case BT_EVENT_DEVICE_CHG:
@@ -639,11 +655,11 @@ static void print_iter(const char *label, const char *name,
 		break;
 	case DBUS_TYPE_BOOLEAN:
 		dbus_message_iter_get_basic(iter, &valbool);
-		rl_printf("%s%s: %s\n", label, name,
+		rl_printf("%s %s: %s\n", label, name,
 					valbool == TRUE ? "yes" : "no");
                 if (match((char *)"Connected", (char *)name) && match((char *)"Device", (char *)label)) {
                         Device *dev = g_slice_new0(Device);
-                        snprintf(dev->address, sizeof(dev->address), "%s", label+strlen("Device"));
+                        snprintf(dev->address, sizeof(dev->address), "%s", label+strlen("Device "));
                         if (valbool == TRUE) {
                                 //dev->connected = 1;
                                 //bt_device_conn(async_queue, dev);
@@ -1023,7 +1039,7 @@ static void property_changed(GDBusProxy *proxy, const char *name,
 								&address);
 				//str = g_strdup_printf("[" COLORED_CHG
 				//		"] Device %s ", address);
-                                str = g_strdup_printf("Device%s", address);
+                                str = g_strdup_printf("Device %s", address);
 			} else
 				str = g_strdup("");
 

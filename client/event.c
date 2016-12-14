@@ -56,7 +56,7 @@ void bt_event_free (BTEvent *event)
 void bt_client_ready(GAsyncQueue *event_queue)
 {
 
-        BTEvent *event = g_slice_new0 (BTEvent);
+        BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_CLIENT_READY;
 
         g_async_queue_push (event_queue, event);
@@ -74,14 +74,14 @@ void bt_client_disconn(GAsyncQueue *event_queue)
 void bt_add_stop_event(GAsyncQueue *event_queue)
 {
 
-        BTEvent *event = g_slice_new0 (BTEvent);
+        BTEvent *event = g_slice_new0(BTEvent);
 
         g_async_queue_push (event_queue, event);
 }
 
 void bt_device_old(GAsyncQueue *event_queue, Device *dev)
 {
-        BTEvent *event = g_slice_new0 (BTEvent);
+        BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_DEVICE_OLD;
         event->payload = dev;
 
