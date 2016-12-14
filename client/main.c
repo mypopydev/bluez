@@ -1897,12 +1897,6 @@ static void connect_reply(DBusMessage *message, void *user_data)
 
 	dbus_error_init(&error);
 
-	if (dbus_set_error_from_message(&error, message) == TRUE) {
-		rl_printf("Failed to connect: %s\n", error.name);
-		dbus_error_free(&error);
-		return;
-	}
-
 	DBusMessageIter iter;
 	const char *address, *name;
 
@@ -1915,6 +1909,18 @@ static void connect_reply(DBusMessage *message, void *user_data)
 		dbus_message_iter_get_basic(&iter, &name);
 	else
 		name = "<unknown>";
+
+	if (dbus_set_error_from_message(&error, message) == TRUE) {
+		rl_printf("Failed to connect: %s [%s %s]\n", error.name, address, name);
+		dbus_error_free(&error);
+                
+                Device *dev = g_slice_new0(Device);
+                snprintf(dev->name, sizeof(dev->name), "%s", name);
+                snprintf(dev->address, sizeof(dev->address), "%s", address);
+                dev->connected = 0;
+                bt_device_disconn(async_queue, dev);
+                return;
+	}
 
 	rl_printf("%s%s%sDevice %s %s Connection successful\n",
 				NULL ? "[" : "",
