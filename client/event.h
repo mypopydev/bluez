@@ -43,9 +43,12 @@ enum _BTEventType
           device status change
          */
         BT_EVENT_DEVICE_OLD,   /* Used "devices" get the device */
-        BT_EVENT_DEVICE_NEW,   /* A new client
+        BT_EVENT_DEVICE_NEW,   /* A new client and in our list
                                   pair <remote_device_MAC@>
                                   connect <remote_device_MAC@> */
+        BT_EVENT_DEVICE_CONN,   /* Device 8C:DE:52:FB:C8:CE Connected: yes */
+        BT_EVENT_DEVICE_DISCONN,/* Device 8C:DE:52:FB:C8:CE Connected: no  */
+
         BT_EVENT_DEVICE_CHG,   /* */
         BT_EVENT_DEVICE_DEL,   /* */
 
@@ -66,6 +69,10 @@ struct _BTEvent {
 };
 typedef struct _BTEvent BTEvent;
 
+struct _CMD {
+        char    cmd[256];
+};
+typedef struct _CMD CMD;
 
 /*
  * bt device type define
@@ -135,7 +142,14 @@ void bt_client_disconn(GAsyncQueue *event_queue);
 
 void bt_device_old(GAsyncQueue *event_queue, Device *dev);
 void bt_device_new(GAsyncQueue *event_queue, Device *dev);
+void bt_device_conn(GAsyncQueue *event_queue, Device *dev);
+void bt_device_disconn(GAsyncQueue *event_queue, Device *dev);
 void bt_device_chg(GAsyncQueue *event_queue, Device *dev);
 void bt_device_del(GAsyncQueue *event_queue, Device *dev);
+
+void bt_cmd_free(CMD *event);
+
+#define NELEMS(array) (sizeof(array) / sizeof(array[0]))
+void LOG(const char *fmt, ...);
 
 #endif /* __EVENT_H__ */

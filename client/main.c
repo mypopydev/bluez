@@ -62,6 +62,9 @@ static DBusConnection *dbus_conn;
 static GAsyncQueue *async_queue = NULL;
 static GThread *state_thread = NULL;
 
+static GAsyncQueue *cmd_queue = NULL;
+static GThread *cmd_thread = NULL;
+
 static GDBusProxy *agent_manager;
 static char *auto_register_agent = NULL;
 
@@ -79,9 +82,6 @@ static GList *ctrl_list;
 GList *device_list = NULL;
 GHashTable *device_hash = NULL;
 
-
-#define NELEMS(array) (sizeof(array) / sizeof(array[0]))
-
 struct device_key {
         enum BTTYPE type;
         char regex[128];     /* match ours devices */
@@ -95,7 +95,7 @@ struct device_key device_keys[] = {
 
 	{
 		.type = TYPE_RBP,
-		.regex = "PBP",
+		.regex = "RBP",
 	},
 
 	{
@@ -171,72 +171,82 @@ static const char * const ad_arguments[] = {
 
 static void power_on()
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "power on\n");
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+        snprintf(event->cmd, 255, "power on");
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static void agent_on()
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "agent on\n");
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+        snprintf(event->cmd, 255, "agent on");
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static void default_agent()
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "default-agent\n");
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+        snprintf(event->cmd, 255, "default-agent");
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static void discoverable_on()
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "discoverable on\n");
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+        snprintf(event->cmd, 255, "discoverable on");
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static void pairable_on()
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "pairable on\n");
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+	snprintf(event->cmd, 255, "pairable on");
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static void scan_on()
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "scan on\n");
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+	snprintf(event->cmd, 255, "scan on");
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static void list_devices()
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "devices\n");
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+	snprintf(event->cmd, 255, "devices");
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static void pair_device(char *bdaddr)
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "pair %s\n", bdaddr);
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+	snprintf(event->cmd, 255, "pair %s", bdaddr);
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static void trust_device(char *bdaddr)
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "trust %s\n", bdaddr);
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+	snprintf(event->cmd, 255, "trust %s", bdaddr);
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static void connect_device(char *bdaddr)
 {
-	char cmd[128] = {0};
-	snprintf(cmd, sizeof(cmd), "connect %s\n", bdaddr);
-	write(fileno(stdin), cmd, strlen(cmd));
+        CMD *event = g_slice_new0 (CMD);
+	snprintf(event->cmd, 255, "connect %s", bdaddr);
+        LOG("S -> C: %s\n", event->cmd);
+        g_async_queue_push (cmd_queue, event);
 }
 
 static Device *find_device_by_address(GHashTable *hash_table, const char *address)
@@ -306,8 +316,8 @@ static gpointer state_handle(gpointer data)
 
                 case BT_EVENT_DEVICE_OLD:
                         dev = event->payload;
-                        dev_type = find_bt_type(dev->address,
-                                                strlen(dev->address),
+                        dev_type = find_bt_type(dev->name,
+                                                strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
                         if (dev_type != TYPE_NONE) {
@@ -331,8 +341,8 @@ static gpointer state_handle(gpointer data)
 
                 case BT_EVENT_DEVICE_NEW:
                         dev = event->payload;
-                        dev_type = find_bt_type(dev->address,
-                                                strlen(dev->address),
+                        dev_type = find_bt_type(dev->name,
+                                                strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
                         if (dev_type != TYPE_NONE) {
@@ -383,7 +393,7 @@ static gboolean input_handler(GIOChannel *channel, GIOCondition condition,
 							gpointer user_data)
 {
 	if (condition & G_IO_IN) {
-		rl_callback_read_char();
+		//rl_callback_read_char();
 		return TRUE;
 	}
 
@@ -418,7 +428,7 @@ static void connect_handler(DBusConnection *connection, void *user_data)
 	rl_on_new_line();
 	rl_redisplay();
 
-        bt_client_ready(async_queue);
+        //bt_client_ready(async_queue);
 }
 
 static void disconnect_handler(DBusConnection *connection, void *user_data)
@@ -462,6 +472,8 @@ static void print_adapter(GDBusProxy *proxy, const char *description)
 				default_ctrl &&
 				default_ctrl->proxy == proxy ?
 				"[default]" : "");
+
+        bt_client_ready(async_queue);
 
 }
 
@@ -510,11 +522,14 @@ static void print_iter(const char *label, const char *name,
 	const char *valstr;
 	DBusMessageIter subiter;
 	char *entry;
-
+        //LOG("%s/%s\n", label, name);
 	if (iter == NULL) {
 		rl_printf("%s%s is nil\n", label, name);
 		return;
 	}
+
+        if (match("Device", label) && !(match("Connected", name)))
+                return;
 
 	switch (dbus_message_iter_get_arg_type(iter)) {
 	case DBUS_TYPE_INVALID:
@@ -529,6 +544,17 @@ static void print_iter(const char *label, const char *name,
 		dbus_message_iter_get_basic(iter, &valbool);
 		rl_printf("%s%s: %s\n", label, name,
 					valbool == TRUE ? "yes" : "no");
+                if (match("Connected", name) && match("Device", label)) {
+                        Device *dev = g_slice_new0(Device);
+                        snprintf(dev->address, sizeof(dev->address), "%s", label+strlen("Device"));
+                        if (valbool == TRUE) {
+                                //dev->connected = 1;
+                                //bt_device_conn(async_queue, dev);
+                        } else {
+                                dev->connected = 0;
+                                bt_device_disconn(async_queue, dev);
+                        }
+                }
 		break;
 	case DBUS_TYPE_UINT32:
 		dbus_message_iter_get_basic(iter, &valu32);
@@ -898,8 +924,9 @@ static void property_changed(GDBusProxy *proxy, const char *name,
 
 				dbus_message_iter_get_basic(&addr_iter,
 								&address);
-				str = g_strdup_printf("[" COLORED_CHG
-						"] Device %s ", address);
+				//str = g_strdup_printf("[" COLORED_CHG
+				//		"] Device %s ", address);
+                                str = g_strdup_printf("Device%s", address);
 			} else
 				str = g_strdup("");
 
@@ -1876,7 +1903,32 @@ static void connect_reply(DBusMessage *message, void *user_data)
 		return;
 	}
 
-	rl_printf("Connection successful\n");
+	DBusMessageIter iter;
+	const char *address, *name;
+
+	if (g_dbus_proxy_get_property(proxy, "Address", &iter) == FALSE)
+		return;
+
+	dbus_message_iter_get_basic(&iter, &address);
+
+	if (g_dbus_proxy_get_property(proxy, "Alias", &iter) == TRUE)
+		dbus_message_iter_get_basic(&iter, &name);
+	else
+		name = "<unknown>";
+
+	rl_printf("%s%s%sDevice %s %s Connection successful\n",
+				NULL ? "[" : "",
+				NULL ? : "",
+				NULL ? "] " : "",
+				address, name);
+
+	//rl_printf("Connection successful\n");
+        // FIXME
+        Device *dev = g_slice_new0(Device);
+        snprintf(dev->name, sizeof(dev->name), "%s", name);
+        snprintf(dev->address, sizeof(dev->address), "%s", address);
+        dev->connected = 1;
+        bt_device_conn(async_queue, dev);
 
 	set_default_device(proxy, NULL);
 }
@@ -2560,6 +2612,76 @@ done:
 	free(input);
 }
 
+static gpointer cmd_handle(gpointer data)
+{
+        GAsyncQueue *cmd_queue = data;
+        CMD *event = NULL;
+
+        while (event = g_async_queue_pop (cmd_queue)) {
+            	char *cmd, *arg;
+                int i;
+
+                if (!event) {
+                        g_main_loop_quit(main_loop);
+                        return NULL;
+                }
+
+                char *input = event->cmd;
+
+                if (!input) {
+                    g_main_loop_quit(main_loop);
+                    return NULL;
+                }
+
+                if (!strlen(input))
+                        goto done;
+
+                if (agent_input(dbus_conn, input) == TRUE)
+                        goto done;
+
+
+                cmd = strtok_r(input, " ", &arg);
+                if (!cmd)
+                        goto done;
+
+                if (arg) {
+                        int len = strlen(arg);
+                        if (len > 0 && arg[len - 1] == ' ')
+                                arg[len - 1] = '\0';
+                }
+
+                for (i = 0; cmd_table[i].cmd; i++) {
+                        if (strcmp(cmd, cmd_table[i].cmd))
+                                continue;
+
+                        if (cmd_table[i].func) {
+                                cmd_table[i].func(arg);
+                                goto done;
+                        }
+                }
+
+                if (strcmp(cmd, "help")) {
+                        printf("Invalid command\n");
+                        goto done;
+                }
+
+                printf("Available commands:\n");
+
+                for (i = 0; cmd_table[i].cmd; i++) {
+                        if (cmd_table[i].desc)
+                                printf("  %s %-*s %s\n", cmd_table[i].cmd,
+                                       (int)(25 - strlen(cmd_table[i].cmd)),
+                                       cmd_table[i].arg ? : "",
+                                       cmd_table[i].desc ? : "");
+                }
+
+done:
+                bt_cmd_free (event);
+        }
+
+        return NULL;
+}
+
 static gboolean signal_handler(GIOChannel *channel, GIOCondition condition,
 							gpointer user_data)
 {
@@ -2710,6 +2832,7 @@ int main(int argc, char *argv[])
                                             release_value);
 
 	setlinebuf(stdout);
+        /*
 	rl_attempted_completion_function = cmd_completion;
 
 	rl_erase_empty_line = 1;
@@ -2717,6 +2840,9 @@ int main(int argc, char *argv[])
 
 	rl_set_prompt(PROMPT_OFF);
 	rl_redisplay();
+        */
+        cmd_queue = g_async_queue_new ();
+        cmd_thread = g_thread_new("cmd thread", cmd_handle, cmd_queue);
 
 	signal = setup_signalfd();
 	client = g_dbus_client_new(dbus_conn, "org.bluez", "/org/bluez");

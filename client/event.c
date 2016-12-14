@@ -89,12 +89,30 @@ void bt_device_old(GAsyncQueue *event_queue, Device *dev)
 }
 
 void bt_device_new(GAsyncQueue *event_queue, Device *dev)
- {
+{
         BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_DEVICE_NEW;
         event->payload = dev;
 
         g_async_queue_push(event_queue, event);
+}
+
+void bt_device_conn(GAsyncQueue *event_queue, Device *dev)
+ {
+        BTEvent *event = g_slice_new0(BTEvent);
+        event->event_type = BT_EVENT_DEVICE_CONN;
+        event->payload = dev;
+
+        g_async_queue_push(event_queue, event);
+}
+
+void bt_device_disconn(GAsyncQueue *event_queue, Device *dev)
+{
+        BTEvent *event = g_slice_new0(BTEvent);
+        event->event_type = BT_EVENT_DEVICE_DISCONN;
+        event->payload = dev;
+
+        g_async_queue_push (event_queue, event);
 }
 
 void bt_device_chg(GAsyncQueue *event_queue, Device *dev)
@@ -115,3 +133,30 @@ void bt_device_del(GAsyncQueue *event_queue, Device *dev)
         g_async_queue_push(event_queue, event);
 }
 
+void bt_cmd_free (CMD *event)
+{
+        if (event) {
+                g_slice_free (CMD, event);
+        }
+}
+
+#include <stdarg.h>
+#include <time.h>
+#include <sys/time.h>
+
+void LOG(const char *fmt, ...)
+{
+	char date[20];
+	struct timeval tv;
+	va_list args;
+
+	/* print the timestamp */
+	gettimeofday(&tv, NULL);
+	strftime(date, NELEMS(date), "%Y-%m-%dT%H:%M:%S", localtime(&tv.tv_sec));
+	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+
+	/* printf like normal */
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+}
