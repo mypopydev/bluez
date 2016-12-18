@@ -52,10 +52,6 @@
 #include "rl_protocol.h"
 #include "utils.h"
 
-#define META_KEY "APP201600000XD8E"
-#define URL  "http//120.24.159.138:8820/"
-#define URL_INTFACE URL"deviceInterface/i.ashx?"
-
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
 #define COLORED_CHG	COLOR_YELLOW "CHG" COLOR_OFF
@@ -149,7 +145,7 @@ static enum BTTYPE find_bt_type(char *buf, int size, struct device_key *devices,
 	int i;
 
 	for (i = 0; i < num; i++) {
-		if (match(devices[i].regex, buf)) {
+		if (match((char *)devices[i].regex, (char *)buf)) {
 			return devices[i].type;
 		}
 	}
@@ -284,7 +280,7 @@ static Device *find_device_by_name(GHashTable *hash_table, const char *name)
 
         g_hash_table_iter_init(&iter, hash_table);
         while (g_hash_table_iter_next(&iter, &key, &value)) {
-                if (match(name, device->name))
+                if (match((char *)name, (char *)device->name))
 			return device;
         }
 
@@ -303,6 +299,89 @@ void release_value(gpointer data)
         g_slice_free (Device, dev);
 }
 
+
+#define META_KEY "APP201600000XD8E"
+#define URL  "http//120.24.159.138:8820/"
+#define URL_INTFACE URL"deviceInterface/i.ashx?"
+
+struct http_response *self_check()
+{
+        char url[1024] = {0};
+        struct http_response *http_resp = NULL;
+        time_t cur_time = time(NULL);
+        snprintf(url, 1023, "%s&g=%s&a=01&s=%ld&p=t=%ld", URL_INTFACE, mac, cur_time, cur_time);
+        http_resp = http_get(url, NULL);
+
+        return http_resp;
+}
+
+struct http_response *send_data()
+{
+        char url[1024] = {0};
+        struct http_response *http_resp = NULL;
+        time_t cur_time = time(NULL);
+        snprintf(url, 1023, "%s&g=%s&a=02&s=%ld&p={t=%ld}", URL_INTFACE, mac, cur_time, cur_time);
+        http_resp = http_get(url, NULL);
+
+        return http_resp;
+}
+
+struct http_response *close_device()
+{
+        char url[1024] = {0};
+        struct http_response *http_resp = NULL;
+        time_t cur_time = time(NULL);
+        snprintf(url, 1023, "%s&g=%s&a=03&s=%ld&p=t=%ld", URL_INTFACE, mac, cur_time, cur_time);
+        http_resp = http_get(url, NULL);
+
+        return http_resp;
+}
+
+struct http_response *init_device()
+{
+        char url[1024] = {0};
+        struct http_response *http_resp = NULL;
+        time_t cur_time = time(NULL);
+        snprintf(url, 1023, "%s&g=%s&a=04&s=%ld&p=t=%ld", URL_INTFACE, mac, cur_time, cur_time);
+        http_resp = http_get(url, NULL);
+
+        return http_resp;
+}
+
+struct http_response *fail_device()
+{
+        char url[1024] = {0};
+        struct http_response *http_resp = NULL;
+        time_t cur_time = time(NULL);
+        snprintf(url, 1023, "%s&g=%s&a=05&s=%ld&p=t=%ld", URL_INTFACE, mac, cur_time, cur_time);
+        http_resp = http_get(url, NULL);
+
+        return http_resp;
+}
+
+struct http_response *version_check()
+{
+        char url[1024] = {0};
+        struct http_response *http_resp = NULL;
+        time_t cur_time = time(NULL);
+        snprintf(url, 1023, "%s&g=%s&a=06&s=%ld&p=t=%ld", URL_INTFACE, mac, cur_time, cur_time);
+        http_resp = http_get(url, NULL);
+
+        return http_resp;
+}
+
+struct http_response *update_fw()
+{
+        char url[1024] = {0};
+        struct http_response *http_resp = NULL;
+        time_t cur_time = time(NULL);
+        snprintf(url, 1023, "%s&g=%s&a=07&s=%ld&p=t=%ld", URL_INTFACE, mac, cur_time, cur_time);
+        http_resp = http_get(url, NULL);
+
+        return http_resp;
+}
+
+
 static gpointer state_handle(gpointer data)
 {
         GAsyncQueue *async_queue = data;
@@ -312,11 +391,6 @@ static gpointer state_handle(gpointer data)
         char *address = NULL;
         enum BTTYPE dev_type = TYPE_NONE;
         struct http_response *http_resp = NULL;
-
-        char url[1024] = {0};
-        time_t cur_time = time(NULL);
-        snprintf(url, 1023, "%s&g=%s&a=01&s=%ld&p=%ld", URL_INTFACE, mac, cur_time, cur_time);
-        http_resp = http_get(url, NULL);
 
         while (event = g_async_queue_pop (async_queue)) {
                 switch (event->event_type) {
@@ -520,7 +594,7 @@ static void print_device(GDBusProxy *proxy, const char *description)
         snprintf(dev->address, sizeof(dev->address), "%s", address);
         if (description == NULL) {
                 bt_device_old(async_queue, dev);
-        } else if (match("NEW", description)) {
+        } else if (match((char *)"NEW", (char *)description)) {
                 bt_device_new(async_queue, dev);
         } else {
                 bt_device_del(async_queue, dev);
@@ -544,7 +618,7 @@ static void print_iter(const char *label, const char *name,
 		return;
 	}
 
-        if (match("Device", label) && !(match("Connected", name)))
+        if (match((char *)"Device", (char *)label) && !(match((char *)"Connected", (char *)name)))
                 return;
 
 	switch (dbus_message_iter_get_arg_type(iter)) {
@@ -560,7 +634,7 @@ static void print_iter(const char *label, const char *name,
 		dbus_message_iter_get_basic(iter, &valbool);
 		rl_printf("%s%s: %s\n", label, name,
 					valbool == TRUE ? "yes" : "no");
-                if (match("Connected", name) && match("Device", label)) {
+                if (match((char *)"Connected", (char *)name) && match((char *)"Device", (char *)label)) {
                         Device *dev = g_slice_new0(Device);
                         snprintf(dev->address, sizeof(dev->address), "%s", label+strlen("Device"));
                         if (valbool == TRUE) {
