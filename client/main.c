@@ -33,6 +33,7 @@
 #include <signal.h>
 #include <sys/signalfd.h>
 #include <wordexp.h>
+#include <time.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -47,6 +48,13 @@
 #include "advertising.h"
 #include "event.h"
 #include "match.h"
+#include "http_client.h"
+#include "rl_protocol.h"
+#include "utils.h"
+
+#define META_KEY "APP201600000XD8E"
+#define URL  "http//120.24.159.138:8820/"
+#define URL_INTFACE URL"deviceInterface/i.ashx?"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -72,6 +80,8 @@ struct adapter {
 	GDBusProxy *proxy;
 	GList *devices;
 };
+
+static char mac[18] = {0};
 
 static struct adapter *default_ctrl;
 static GDBusProxy *default_dev;
@@ -301,6 +311,12 @@ static gpointer state_handle(gpointer data)
         Device *device = NULL;
         char *address = NULL;
         enum BTTYPE dev_type = TYPE_NONE;
+        struct http_response *http_resp = NULL;
+
+        char url[1024] = {0};
+        time_t cur_time = time(NULL);
+        snprintf(url, 1023, "%s&g=%s&a=01&s=%ld&p=%ld", URL_INTFACE, mac, cur_time, cur_time);
+        http_resp = http_get(url, NULL);
 
         while (event = g_async_queue_pop (async_queue)) {
                 switch (event->event_type) {
@@ -1913,7 +1929,7 @@ static void connect_reply(DBusMessage *message, void *user_data)
 	if (dbus_set_error_from_message(&error, message) == TRUE) {
 		rl_printf("Failed to connect: %s [%s %s]\n", error.name, address, name);
 		dbus_error_free(&error);
-                
+
                 Device *dev = g_slice_new0(Device);
                 snprintf(dev->name, sizeof(dev->name), "%s", name);
                 snprintf(dev->address, sizeof(dev->address), "%s", address);
@@ -2828,6 +2844,7 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
+        get_mac("eth0", mac);
 	main_loop = g_main_loop_new(NULL, FALSE);
 	dbus_conn = g_dbus_setup_bus(DBUS_BUS_SYSTEM, NULL, NULL);
         async_queue = g_async_queue_new ();

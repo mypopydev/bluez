@@ -214,6 +214,7 @@ int spp_connet(char *baddr)
                         len = read(s, buf, 128);
                         LOG("read %d bytes\n", len);
                         hexdump(buf, len);
+                        /* Call back */
                 } while (len > 0);
                 close(s);
         }

@@ -17,6 +17,7 @@ client_bluetoothctl_SOURCES = client/main.c \
 					client/http_client.h client/http_client.c \
 					client/match.h client/match.c \
 					client/sdp.h client/sdp.c \
+					client/utils.h client/utils.c \
 					monitor/uuid.h monitor/uuid.c
 client_bluetoothctl_LDADD = gdbus/libgdbus-internal.la @GLIB_LIBS@ @DBUS_LIBS@ \
 				-lreadline -lbluetooth
