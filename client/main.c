@@ -77,7 +77,7 @@ struct adapter {
 	GList *devices;
 };
 
-static char mac[18] = {0};
+static char mac[13] = {0};
 
 static struct adapter *default_ctrl;
 static GDBusProxy *default_dev;
@@ -301,17 +301,23 @@ void release_value(gpointer data)
 
 
 #define META_KEY "APP201600000XD8E"
-#define URL  "http//120.24.159.138:8820/"
-#define URL_INTFACE URL"deviceInterface/i.ashx?"
+#define URL  "http://120.24.159.138:8820/"
+#define URL_INTFACE "deviceInterface/i.ashx?"
 
 struct http_response *self_check()
 {
         char url[1024] = {0};
         struct http_response *http_resp = NULL;
         time_t cur_time = time(NULL);
-        snprintf(url, 1023, "%s&g=%s&a=01&s=%ld&p=t=%ld", URL_INTFACE, mac, cur_time, cur_time);
+        unsigned char *enc = NULL;
+        char cmd[128] = {0};
+        char cmd1[128] = {0};
+        snprintf(cmd, 127, "t=%ld", cur_time);
+        enc = rl_encode1(cmd, strlen(cmd), META_KEY);
+        snprintf(url, 1023, "%s%s&g=%s&a=01&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
+        printf("%s url\n", url);
         http_resp = http_get(url, NULL);
-
+        free(enc);
         return http_resp;
 }
 
@@ -2919,6 +2925,7 @@ int main(int argc, char *argv[])
 	}
 
         get_mac("eth0", mac);
+        struct http_response *resp = self_check();
 	main_loop = g_main_loop_new(NULL, FALSE);
 	dbus_conn = g_dbus_setup_bus(DBUS_BUS_SYSTEM, NULL, NULL);
         async_queue = g_async_queue_new ();

@@ -130,7 +130,7 @@ struct parsed_url *parse_url(const char *url)
                 if (is_scheme_char(curstr[i]) == 0) {
                         /* Invalid format */
                         parsed_url_free(purl);
-                        fprintf(stderr, "Error on line %d (%s)\n", __LINE__, __FILE__);
+                        fprintf(stderr, "Error on line %d (%s) char %c\n", __LINE__, __FILE__, curstr[i]);
                         return NULL;
                 }
         }

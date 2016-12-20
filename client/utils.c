@@ -22,7 +22,7 @@ int get_mac(char *name, char *str_mac)
                 mac = (unsigned char *)ifr.ifr_hwaddr.sa_data;
 
                 /* fmt mac address */
-                snprintf(str_mac, 17, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+                snprintf(str_mac, 17, "%.2X%.2X%.2X%.2X%.2X%.2X",
                         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         }
 

@@ -125,6 +125,37 @@ unsigned char *rl_encode(char *meta_str, size_t len, unsigned char *meta_key)
 }
 
 /*
+ * retired life protocol encode flow:
+ *
+ *  xxtea -> base64 -> url_encode
+ *
+ * NOTE: the caller need to free the memory.
+ *
+ * */
+unsigned char *rl_encode1(char *meta_str, size_t len, unsigned char *meta_key)
+{
+        char base64_orig[1024] = {0};
+        char *base64 = NULL;
+        uint32_t base64_orig_len, base64_len;
+        unsigned char *result = NULL;
+        uint32_t ret_length;
+
+        //base64_orig = meta_str;
+        snprintf(base64_orig, len, "%s", meta_str);
+        base64_orig_len = len;
+        result = encrypt((unsigned char *)base64_orig, base64_orig_len, (unsigned char *)meta_key, &ret_length);
+        base64 = base64_encode(result, ret_length, &base64_len);
+        char buf[2048] = {0};
+        strncpy(buf, base64, base64_len);
+
+        free(result);
+        free(base64);
+
+        return url_encode(buf);
+}
+
+
+/*
  * retired life protocol decode flow:
  *
  * NOTE: the caller need to free the memory.
@@ -162,3 +193,40 @@ unsigned char *rl_decode(char *meta_str, size_t len, unsigned char *meta_key)
         return (unsigned char *)temp;
 }
 
+/*
+ * retired life protocol decode flow:
+ *
+ * NOTE: the caller need to free the memory.
+ *
+ * */
+unsigned char *rl_decode1(char *meta_str, size_t len, unsigned char *meta_key)
+{
+        unsigned char *base64_orig = NULL;
+        unsigned char *base64 = NULL;
+        unsigned char *result = NULL;
+        uint32_t base64_orig_len, base64_len;
+        uint32_t ret_length;
+        char *str = NULL;
+
+        str = meta_str;
+        /*
+         * "T:" or "F:" do not need to decode, and by pass 2 chars
+         * */
+        if (len <= 2) {
+                printf("Error, get error data.\n");
+                return NULL;
+        }
+        base64_orig = base64_decode(str+2, (uint32_t)len - 2, &base64_orig_len);
+        result = decrypt(base64_orig, base64_orig_len, (unsigned char *)meta_key, &ret_length);
+        base64 = base64_decode((char *)result, ret_length, &base64_len);
+        printf("%s:%s\n", __FUNCTION__, base64);
+
+        char *temp = malloc(base64_len + 1);
+        strncpy(temp, (char *)base64, base64_len);
+
+        free(base64_orig);
+        free(result);
+        free(base64);
+
+        return (unsigned char *)temp;
+}
