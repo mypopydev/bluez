@@ -18,6 +18,8 @@
 #include <bluetooth/sdp_lib.h>
 #include <bluetooth/rfcomm.h>
 
+#include "event.h"
+
 static void hexdump(void *buf, long size)
 {
 	char sz_buf[100];
