@@ -101,6 +101,7 @@ void bt_device_conn(GAsyncQueue *event_queue, Device *dev)
  {
         BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_DEVICE_CONN;
+        dev->connected = 1;
         event->payload = dev;
 
         g_async_queue_push(event_queue, event);
@@ -110,6 +111,7 @@ void bt_device_disconn(GAsyncQueue *event_queue, Device *dev)
 {
         BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_DEVICE_DISCONN;
+        dev->connected = 0;
         event->payload = dev;
 
         g_async_queue_push (event_queue, event);
