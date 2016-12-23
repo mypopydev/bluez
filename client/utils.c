@@ -4,6 +4,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 int get_mac(char *name, char *str_mac)
 {
