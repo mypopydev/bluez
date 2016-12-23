@@ -315,9 +315,11 @@ struct http_response *self_check()
         snprintf(cmd, 127, "t=%ld", cur_time);
         enc = rl_encode1(cmd, strlen(cmd), META_KEY);
         snprintf(url, 1023, "%s%s&g=%s&a=01&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
-        printf("%s url\n", url);
+        //printf("%s url\n", url);
         http_resp = http_get(url, NULL);
         free(enc);
+        printf("header %s\n", http_resp->request_headers);
+        printf("body %s\n", http_resp->body);
         return http_resp;
 }
 

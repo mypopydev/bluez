@@ -120,7 +120,7 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 	/* Declare variable */
 	int sock;
 	int tmpres;
-	struct sockaddr_in *remote;
+	struct sockaddr_in remote;
 
 	/* Allocate memeory for htmlcontent */
 	struct http_response *hresp = (struct http_response *)malloc(sizeof(struct http_response));
@@ -128,6 +128,7 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 		printf("Unable to allocate memory for htmlcontent.");
 		return NULL;
 	}
+        hresp->request_uri = NULL;
 	hresp->body = NULL;
 	hresp->request_headers = NULL;
 	hresp->response_headers = NULL;
@@ -141,20 +142,19 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 	}
 
 	/* Set remote->sin_addr.s_addr */
-	remote = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in *));
-	remote->sin_family = AF_INET;
-  	tmpres = inet_pton(AF_INET, purl->ip, (void *)(&(remote->sin_addr.s_addr)));
+	remote.sin_family = AF_INET;
+  	tmpres = inet_pton(AF_INET, purl->ip, (void *)(&(remote.sin_addr.s_addr)));
   	if (tmpres < 0) {
-                printf("Can't set remote->sin_addr.s_addr");
+                printf("Can't set remote.sin_addr.s_addr");
                 return NULL;
   	} else if(tmpres == 0) {
 		printf("Not a valid IP");
                 return NULL;
   	}
-	remote->sin_port = htons(atoi(purl->port));
+	remote.sin_port = htons(atoi(purl->port));
 
 	/* Connect */
-	if (connect(sock, (struct sockaddr *)remote, sizeof(struct sockaddr)) < 0) {
+	if (connect(sock, (struct sockaddr *)&remote, sizeof(struct sockaddr)) < 0) {
                 printf("Could not connect");
                 return NULL;
 	}
@@ -171,16 +171,16 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
         }
 
 	/* Recieve into response*/
-	char *response = (char *)malloc(0);
-	char buf[BUFSIZ];
+	char *response = (char *)malloc(4096);
+        //char *response = NULL;
+	//char buf[BUFSIZ];
 	size_t recived_len = 0;
-	while ((recived_len = recv(sock, buf, BUFSIZ-1, 0)) > 0) {
-                buf[recived_len] = '\0';
-                response = (char *)realloc(response, strlen(response) + strlen(buf) + 1);
-                sprintf(response, "%s%s", response, buf);
+	while ((recived_len = recv(sock, response, 4096 - 1, 0)) > 0) {
+            response[recived_len] = '\0';
 	}
 	if (recived_len < 0) {
-		free(http_headers);
+                free(response);
+                free(http_headers);
                 close(sock);
                 printf("Unabel to recieve");
 		return NULL;
@@ -284,6 +284,7 @@ struct http_response *http_get(char *url, char *custom_headers)
 	struct http_response *hresp = http_req(http_headers, purl);
 
 	/* Handle redirect */
+        //return hresp;
 	return handle_redirect_get(hresp, custom_headers);
 }
 
