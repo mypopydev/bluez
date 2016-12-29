@@ -154,6 +154,32 @@ unsigned char *rl_encode1(char *meta_str, size_t len, unsigned char *meta_key)
         return url_encode(buf);
 }
 
+char *rl_encode2(char *meta_str, size_t len, unsigned char *meta_key)
+{
+        char base64_orig[1024] = {0};
+        char *base64 = NULL;
+        uint32_t base64_orig_len, base64_len;
+        unsigned char *result = NULL;
+        uint32_t ret_length;
+
+        //base64_orig = meta_str;
+        //snprintf(base64_orig, len, "%s", meta_str);
+        strncpy(base64_orig, meta_str, len);
+        base64_orig_len = len;
+        //result = encrypt((unsigned char *)base64_orig, base64_orig_len, (unsigned char *)meta_key, &ret_length);
+        base64 = base64_encode(base64_orig, base64_orig_len, &base64_len);
+        //char buf[2048] = {0};
+        //strncpy(buf, base64, base64_len);
+
+        //free(result);
+        //free(base64);
+        //return base64;
+        char *tmp = malloc(1024);
+        memset(tmp, 1024, 0);
+        strncpy(tmp, base64, base64_len);
+        return tmp;
+        //return url_encode(buf);
+}
 
 /*
  * retired life protocol decode flow:

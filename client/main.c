@@ -309,15 +309,14 @@ struct http_response *self_check()
         char url[1024] = {0};
         struct http_response *http_resp = NULL;
         time_t cur_time = time(NULL);
-        unsigned char *enc = NULL;
+        char *enc = NULL;
         char cmd[128] = {0};
         char cmd1[128] = {0};
-        snprintf(cmd, 127, "t=%ld", cur_time);
-        enc = rl_encode1(cmd, strlen(cmd), META_KEY);
-        snprintf(url, 1023, "%s%s&g=%s&a=01&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
-        //printf("%s url\n", url);
+        snprintf(cmd, 127, "{t=%ld;}", cur_time);
+        enc = g_base64_encode(cmd, strlen(cmd));
+        snprintf(url, 1023, "%s%sg=%s&a=01&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
-        free(enc);
+        g_free(enc);
         printf("header %s\n", http_resp->request_headers);
         printf("body %s\n", http_resp->body);
         return http_resp;
@@ -328,7 +327,7 @@ struct http_response *send_data()
         char url[1024] = {0};
         struct http_response *http_resp = NULL;
         time_t cur_time = time(NULL);
-        snprintf(url, 1023, "%s&g=%s&a=02&s=%ld&p={t=%ld}", URL_INTFACE, mac, cur_time, cur_time);
+        //snprintf(url, 1023, "%s&g=%s&a=02&s=%ld&p={t=%ld}", URL_INTFACE, mac, cur_time, cur_time);
         http_resp = http_get(url, NULL);
 
         return http_resp;
@@ -339,7 +338,7 @@ struct http_response *close_device()
         char url[1024] = {0};
         struct http_response *http_resp = NULL;
         time_t cur_time = time(NULL);
-        snprintf(url, 1023, "%s&g=%s&a=03&s=%ld&p=t=%ld", URL_INTFACE, mac, cur_time, cur_time);
+        //snprintf(url, 1023, "%s&g=%s&a=03&s=%ld&p=t=%ld", URL_INTFACE, mac, cur_time, cur_time);
         http_resp = http_get(url, NULL);
 
         return http_resp;
