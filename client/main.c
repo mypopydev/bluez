@@ -311,7 +311,7 @@ struct http_response *self_check()
         time_t cur_time = time(NULL);
         char *enc = NULL;
         char cmd[128] = {0};
-        char cmd1[128] = {0};
+
         snprintf(cmd, 127, "{t=%ld;}", cur_time);
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=01&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
