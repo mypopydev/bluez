@@ -105,8 +105,8 @@ struct device_key device_keys[] = {
 	},
 
 	{
-		.type = TYPE_MODEM_CLIP,
-		.regex = "+CLIP",
+		.type = TYPE_IDONN,
+		.regex = "X6S-",
 	},
 
 	{
