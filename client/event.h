@@ -84,8 +84,8 @@ enum BTTYPE {
 	 *   device ok
 	 */
 	TYPE_RBP,               /* name RBP1601040168 */
-	TYPE_IDONN,             /* name  X6S-159C  */
-	TYPE_MODEM_NO_CARRIER,  /* NO CARRIER */
+	TYPE_IDONN,             /* name X6S-159C  */
+	TYPE_801B,              /* name SPO2:HC-801B */
 	TYPE_MODEM_NO_ANSWER,   /* NO ANSWER */
 	TYPE_MODEM_BUSY,        /* BUSY */
 	TYPE_MODEM_OK,          /* OK */

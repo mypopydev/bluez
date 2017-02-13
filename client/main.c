@@ -110,8 +110,8 @@ struct device_key device_keys[] = {
 	},
 
 	{
-		.type = TYPE_MODEM_NO_CARRIER,
-		.regex = "NO CARRIER",
+		.type = TYPE_801B,
+		.regex = "HC-801B",
 	},
 
 	{
@@ -444,6 +444,9 @@ static gpointer state_handle(gpointer data)
                                 case TYPE_RBP:
                                         trust_device(address);
                                         connect_device(address);
+                                case TYPE_801B:
+                                        trust_device(address);
+                                        connect_device(address);
                                         break;
                                 default:
                                         break;
@@ -467,6 +470,10 @@ static gpointer state_handle(gpointer data)
 				display_hash_table(device_hash);
                                 switch (dev_type) {
                                 case TYPE_RBP:
+                                        trust_device(address);
+                                        connect_device(address);
+                                        break;
+                                case TYPE_801B:
                                         trust_device(address);
                                         connect_device(address);
                                         break;
