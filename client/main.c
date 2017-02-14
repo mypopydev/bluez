@@ -179,15 +179,15 @@ void print_key_value(gpointer key, gpointer value, gpointer user_data)
 {
 	LOG("%s \n", key);
 	Device *dev = value;
-	printf("    %s %s \n    paired: %d tructed: %d blocked: %d connected: %d type: %d\n" , 
+	printf("    %s %s \n    paired: %d tructed: %d blocked: %d connected: %d type: %d\n" ,
 	       dev->address, dev->name, dev->paired, dev->tructed, dev->blocked, dev->connected, dev->type);
 }
 
 void display_hash_table(GHashTable *table)
 {
-	LOG("Hash star ---> \n");
+	LOG("Hash star ---> \n\n");
 	g_hash_table_foreach(table, print_key_value, NULL);
-	LOG("Hash end  ---> \n");
+	LOG("Hash end  ---> \n\n");
 }
 
 static void power_on()
@@ -487,11 +487,38 @@ static gpointer state_handle(gpointer data)
                 case BT_EVENT_DEVICE_DEL:
                         g_hash_table_remove(device_hash,
                                             dev->address);
+                        /* XXX: destory the thread */
 			display_hash_table(device_hash);
                         break;
 
                 case BT_EVENT_DEVICE_CHG:
                         /* Update the device status ? */
+                        dev = event->payload;
+                        dev_type = find_bt_type(dev->name,
+                                                strlen(dev->name),
+                                                device_keys,
+                                                NELEMS(device_keys));
+                        if (dev_type != TYPE_NONE) {
+                                dev->type = dev_type;
+                                device = g_slice_dup(Device, dev);
+                                address = strdup(dev->address);
+                                g_hash_table_insert(device_hash,
+                                                    address,
+                                                    device);
+				display_hash_table(device_hash);
+                                switch (dev_type) {
+                                case TYPE_RBP:
+                                        trust_device(address);
+                                        connect_device(address);
+                                        break;
+                                case TYPE_801B:
+                                        trust_device(address);
+                                        connect_device(address);
+                                        break;
+                                default:
+                                        break;
+                                }
+                        }
                         break;
 
                 default:
@@ -1040,12 +1067,18 @@ static void property_changed(GDBusProxy *proxy, const char *name,
 
 			if (g_dbus_proxy_get_property(proxy, "Address",
 							&addr_iter) == TRUE) {
-				const char *address;
+				const char *address, *name;
 
 				dbus_message_iter_get_basic(&addr_iter,
 								&address);
-				//str = g_strdup_printf("[" COLORED_CHG
-				//		"] Device %s ", address);
+                                if (g_dbus_proxy_get_property(proxy, "Alias", &addr_iter) == TRUE)
+                                        dbus_message_iter_get_basic(&addr_iter, &name);
+                                else
+                                        name = "<unknown>";
+                                //str = g_strdup_printf("[" COLORED_CHG
+                                //                      "] Device %s %s", address, name);
+                                LOG("[" COLORED_CHG
+                                                      "] Device %s %s\n", address, name);
                                 str = g_strdup_printf("Device %s", address);
 			} else
 				str = g_strdup("");
