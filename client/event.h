@@ -84,8 +84,9 @@ enum BTTYPE {
 	 *   device ok
 	 */
 	TYPE_RBP,               /* name RBP1601040168 */
-	TYPE_IDONN,             /* name X6S-159C  */
+	//TYPE_IDONN,           /* name X6S-159C  */
 	TYPE_801B,              /* name SPO2:HC-801B */
+        TYPE_601B,              /* name BG:HC-601B */
 	TYPE_MODEM_NO_ANSWER,   /* NO ANSWER */
 	TYPE_MODEM_BUSY,        /* BUSY */
 	TYPE_MODEM_OK,          /* OK */
@@ -121,6 +122,20 @@ enum BTTYPE {
 };
 
 struct _Device {
+        char address[64]; /* as hash key */
+        char name[64];
+
+        int  paired;
+        int  tructed;
+        int  blocked;
+        int  connected;
+
+        enum BTTYPE type;
+};
+
+typedef struct _Device Device;
+
+struct hash_device {
         char address[64];
         char name[64];
 

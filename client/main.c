@@ -103,11 +103,13 @@ struct device_key device_keys[] = {
 		.type = TYPE_RBP,
 		.regex = "RBP",
 	},
+        /*
 
 	{
 		.type = TYPE_IDONN,
 		.regex = "X6S-",
 	},
+        */
 
 	{
 		.type = TYPE_801B,
@@ -115,28 +117,8 @@ struct device_key device_keys[] = {
 	},
 
 	{
-		.type = TYPE_MODEM_NO_ANSWER,
-		.regex = "NO ANSWER",
-	},
-
-	{
-		.type = TYPE_MODEM_BUSY,
-		.regex = "BUSY",
-	},
-
-	{
-		.type = TYPE_MODEM_OK,
-		.regex = "OK",
-	},
-
-	{
-		.type = TYPE_MODEM_ERROR,
-		.regex = "ERROR",
-	},
-
-	{
-		.type = TYPE_MODEM_SMS,
-		.regex = "+CMTI: \"SM\"",
+		.type = TYPE_601B,
+		.regex = "HC-601B",
 	},
 };
 
