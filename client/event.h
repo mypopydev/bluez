@@ -40,17 +40,25 @@ enum _BTEventType
         BT_EVENT_CLIENT_DISCONN, /* Can't connect with the dbus */
 
         /*
-          device status change
+          device status change, have payload
          */
-        BT_EVENT_DEVICE_OLD,   /* Used "devices" get the device */
+        BT_EVENT_DEVICE_OLD,   /* Used "devices" get the device
+                                  connect <remote_device_MAC@> */
+
         BT_EVENT_DEVICE_NEW,   /* A new client and in our list
                                   pair <remote_device_MAC@>
                                   connect <remote_device_MAC@> */
+
         BT_EVENT_DEVICE_CONN,   /* Device 8C:DE:52:FB:C8:CE Connected: yes */
         BT_EVENT_DEVICE_DISCONN,/* Device 8C:DE:52:FB:C8:CE Connected: no  */
 
         BT_EVENT_DEVICE_CHG,   /* */
         BT_EVENT_DEVICE_DEL,   /* */
+
+        /*
+          device reconn with a timer (now use a 5s timer)
+         */
+        BT_EVENT_DEVICE_RECONN,
 
         /*
            pairing and connecting
@@ -126,7 +134,7 @@ struct _Device {
         char name[64];
 
         int  paired;
-        int  tructed;
+        int  trusted;
         int  blocked;
         int  connected;
 
@@ -136,15 +144,11 @@ struct _Device {
 typedef struct _Device Device;
 
 struct hash_device {
-        char address[64];
-        char name[64];
+        Device *dev;
 
-        int  paired;
-        int  tructed;
-        int  blocked;
-        int  connected;
-
-        enum BTTYPE type;
+        GThread *pool_thread;
+        GThread *handle_thread;
+        GAsyncQueue *queue;
 };
 
 typedef struct _Device Device;
@@ -161,6 +165,8 @@ void bt_device_conn(GAsyncQueue *event_queue, Device *dev);
 void bt_device_disconn(GAsyncQueue *event_queue, Device *dev);
 void bt_device_chg(GAsyncQueue *event_queue, Device *dev);
 void bt_device_del(GAsyncQueue *event_queue, Device *dev);
+
+void bt_device_reconn(GAsyncQueue *event_queue, Device *dev);
 
 void bt_cmd_free(CMD *event);
 

@@ -40,10 +40,15 @@ void bt_event_free (BTEvent *event)
                         switch (event->event_type) {
                         case BT_EVENT_DEVICE_OLD:
                         case BT_EVENT_DEVICE_NEW:
+
+                        case BT_EVENT_DEVICE_CONN:
+                        case BT_EVENT_DEVICE_DISCONN:
+
                         case BT_EVENT_DEVICE_CHG:
                         case BT_EVENT_DEVICE_DEL:
                                 g_slice_free (Device, event->payload);
                                 break;
+
                         default:
                                 break;
                         }
@@ -131,6 +136,14 @@ void bt_device_del(GAsyncQueue *event_queue, Device *dev)
         BTEvent *event = g_slice_new0(BTEvent);
         event->event_type = BT_EVENT_DEVICE_DEL;
         event->payload = dev;
+
+        g_async_queue_push(event_queue, event);
+}
+
+void bt_device_reconn(GAsyncQueue *event_queue, Device *dev)
+{
+        BTEvent *event = g_slice_new0(BTEvent);
+        event->event_type = BT_EVENT_DEVICE_RECONN;
 
         g_async_queue_push(event_queue, event);
 }

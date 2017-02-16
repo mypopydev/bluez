@@ -88,6 +88,9 @@ static GList *ctrl_list;
 GList *device_list = NULL;
 GHashTable *device_hash = NULL;
 
+#define MAX_THREADS 128
+GThreadPool *thread_pool = NULL;
+
 struct device_key {
         enum BTTYPE type;
         char regex[128];     /* match ours devices */
@@ -121,6 +124,9 @@ struct device_key device_keys[] = {
 		.regex = "HC-601B",
 	},
 };
+
+static GAsyncQueue *dev_queue = NULL;
+static GThread *dev_thread = NULL;
 
 static enum BTTYPE find_bt_type(char *buf, int size, struct device_key *devices, int num)
 {
@@ -161,15 +167,16 @@ void print_key_value(gpointer key, gpointer value, gpointer user_data)
 {
 	LOG("%s \n", key);
 	Device *dev = value;
-	printf("    %s %s \n    paired: %d tructed: %d blocked: %d connected: %d type: %d\n" ,
-	       dev->address, dev->name, dev->paired, dev->tructed, dev->blocked, dev->connected, dev->type);
+	printf("    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d\n" ,
+	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type);
 }
 
 void display_hash_table(GHashTable *table)
 {
-	LOG("Hash star ---> \n\n");
+        LOG("\n");
+	LOG("Hash star ---> \n");
 	g_hash_table_foreach(table, print_key_value, NULL);
-	LOG("Hash end  ---> \n\n");
+	LOG("Hash end  ---> \n");
 }
 
 static void power_on()
@@ -283,6 +290,40 @@ static Device *find_device_by_name(GHashTable *hash_table, const char *name)
 
         return NULL;
 }
+
+void reconn_device(gpointer key, gpointer value, gpointer user_data)
+{
+	LOG("%s \n", key);
+	Device *dev = value;
+        if (dev && dev->connected != 1)
+                connect_device(dev->address);
+	printf("    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d\n" ,
+	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type);
+}
+
+void reconn_devices(GHashTable *table)
+{
+	g_hash_table_foreach(table, reconn_device, NULL);
+}
+
+
+/* static void reconn_devices(GHashTable *hash_table) */
+/* { */
+/*         GHashTableIter iter; */
+/*         gpointer key, value; */
+/*         char *addr = key; */
+/*         Device *device = value; */
+
+/*         g_hash_table_iter_init(&iter, hash_table); */
+/*         while (g_hash_table_iter_next(&iter, &key, &value)) { */
+/*                 /\* */
+/*                 if (device->connected != 1) */
+/* 			connect_device(device->address); */
+/*                 *\/ */
+/*         } */
+
+/*         return; */
+/* } */
 
 void release_key(gpointer data)
 {
@@ -414,7 +455,8 @@ static gpointer state_handle(gpointer data)
                                                 strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
-                        if (dev_type != TYPE_NONE) {
+                        if (dev_type != TYPE_NONE && !find_device_by_address(device_hash, dev->address)) {
+                                /* XXX: find this device in hash table */
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
                                 address = strdup(dev->address);
@@ -503,6 +545,15 @@ static gpointer state_handle(gpointer data)
                         }
                         break;
 
+                case BT_EVENT_DEVICE_RECONN:
+                        /* try to re-connect the device with a 5s timer in device hash */
+                        reconn_devices(device_hash);
+                        break;
+
+                case BT_EVENT_DEVICE_CONN:
+                        /* device connected, try to read the value and
+                           send the result to server */
+                        break;
                 default:
                         break;
                 }
@@ -511,6 +562,45 @@ static gpointer state_handle(gpointer data)
         }
 
         return NULL;
+}
+
+/*
+static void
+test_thread_pools_entry_func (gpointer data, gpointer user_data)
+{
+#ifdef DEBUG
+  guint id = 0;
+
+  id = GPOINTER_TO_UINT (data);
+#endif
+
+  DEBUG_MSG (("[pool] ---> [%3.3d] entered thread.", id));
+
+  G_LOCK (thread_counter_pools);
+  abs_thread_counter++;
+  running_thread_counter++;
+  G_UNLOCK (thread_counter_pools);
+
+  g_usleep (g_random_int_range (0, 4000));
+
+  G_LOCK (thread_counter_pools);
+  running_thread_counter--;
+  leftover_task_counter--;
+
+  DEBUG_MSG (("[pool] ---> [%3.3d] exiting thread (abs count:%ld, "
+	      "running count:%ld, left over:%ld)",
+	      id, abs_thread_counter,
+	      running_thread_counter, leftover_task_counter));
+  G_UNLOCK (thread_counter_pools);
+}
+*/
+
+static gboolean
+recurser_start (gpointer data)
+{
+        LOG("Device re-connect now !!!\n");
+        bt_device_reconn(async_queue, NULL);
+        return TRUE;
 }
 
 static void proxy_leak(gpointer data)
@@ -651,12 +741,13 @@ static void print_iter(const char *label, const char *name,
 	const char *valstr;
 	DBusMessageIter subiter;
 	char *entry;
-        //LOG("%s/%s\n", label, name);
+        LOG("%s/%s\n", label, name);
 	if (iter == NULL) {
 		rl_printf("%s%s is nil\n", label, name);
 		return;
 	}
 
+        /* XXX: FIXME */
         if (match((char *)"Device", (char *)label) && !(match((char *)"Connected", (char *)name)))
                 return;
 
@@ -2973,6 +3064,13 @@ int main(int argc, char *argv[])
                                             g_str_equal,
                                             release_key,
                                             release_value);
+/*
+         thread_pool = g_thread_pool_new ((GFunc)test_thread_pools_entry_func,
+                                          NULL,
+                                          MAX_THREADS,
+                                          FALSE,
+                                          NULL);
+*/
 
 	setlinebuf(stdout);
         /*
@@ -2998,6 +3096,9 @@ int main(int argc, char *argv[])
 							property_changed, NULL);
 
 	g_dbus_client_set_ready_watch(client, client_ready, NULL);
+
+        /* pooling the device status per 5s */
+        g_timeout_add_seconds(5, recurser_start, NULL);
 
 	g_main_loop_run(main_loop);
 
