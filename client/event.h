@@ -143,17 +143,6 @@ struct _Device {
 
 typedef struct _Device Device;
 
-struct hash_device {
-        Device *dev;
-
-        GThread *pool_thread;
-        GThread *handle_thread;
-        GAsyncQueue *queue;
-};
-
-typedef struct _Device Device;
-
-
 void bt_event_free(BTEvent *event);
 
 void bt_client_ready(GAsyncQueue *event_queue);
