@@ -261,16 +261,8 @@ static void connect_device(char *bdaddr)
 
 static Device *find_device_by_address(GHashTable *hash_table, const char *address)
 {
-        GHashTableIter iter;
-        gpointer key, value;
-        char *addr = key;
-        Device *device = value;
-
-        g_hash_table_iter_init(&iter, hash_table);
-        while (g_hash_table_iter_next(&iter, &key, &value)) {
-                if (!strcmp(addr, address))
-			return device;
-        }
+        if (address)
+                return g_hash_table_lookup(hash_table, address);
 
         return NULL;
 }
@@ -295,7 +287,7 @@ void reconn_device(gpointer key, gpointer value, gpointer user_data)
 {
 	LOG("%s \n", key);
 	Device *dev = value;
-        if (dev && dev->connected != 1)
+        if (dev && dev->connected != 1 && dev->type != TYPE_RBP)
                 connect_device(dev->address);
 	printf("    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d\n" ,
 	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type);
@@ -455,7 +447,7 @@ static gpointer state_handle(gpointer data)
                                                 strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
-                        if (dev_type != TYPE_NONE && !find_device_by_address(device_hash, dev->address)) {
+                        if (dev_type != TYPE_NONE && find_device_by_name(device_hash, dev->address)) {
                                 /* XXX: find this device in hash table */
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
@@ -511,7 +503,7 @@ static gpointer state_handle(gpointer data)
                 case BT_EVENT_DEVICE_DEL:
                         g_hash_table_remove(device_hash,
                                             dev->address);
-                        /* XXX: destory the thread */
+
 			display_hash_table(device_hash);
                         break;
 
@@ -551,9 +543,63 @@ static gpointer state_handle(gpointer data)
                         break;
 
                 case BT_EVENT_DEVICE_CONN:
-                        /* device connected, try to read the value and
+                        /* device connected, update hash table, try to read the value and
                            send the result to server */
+                        dev = event->payload;
+                        dev_type = find_bt_type(dev->name,
+                                                strlen(dev->name),
+                                                device_keys,
+                                                NELEMS(device_keys));
+                        if (dev_type != TYPE_NONE) {
+                                dev->type = dev_type;
+                                device = g_slice_dup(Device, dev);
+                                address = strdup(dev->address);
+                                g_hash_table_insert(device_hash,
+                                                    address,
+                                                    device);
+				display_hash_table(device_hash);
+                                switch (dev_type) {
+                                case TYPE_RBP:
+                                        /* wait cmd and recv the data */
+                                        break;
+
+                                case TYPE_801B:
+                                        /* wait cmd and recv the data */
+                                        break;
+
+                                default:
+                                        break;
+                                }
+                        }
                         break;
+
+                case BT_EVENT_DEVICE_DISCONN:
+                        /* Update the device status ? */
+                        dev = event->payload;
+                        dev_type = find_bt_type(dev->name,
+                                                strlen(dev->name),
+                                                device_keys,
+                                                NELEMS(device_keys));
+                        if (dev_type != TYPE_NONE) {
+                                dev->type = dev_type;
+                                device = g_slice_dup(Device, dev);
+                                address = strdup(dev->address);
+                                g_hash_table_insert(device_hash,
+                                                    address,
+                                                    device);
+				display_hash_table(device_hash);
+                                switch (dev_type) {
+                                case TYPE_RBP:
+                                        break;
+
+                                case TYPE_801B:
+                                        break;
+                                default:
+                                        break;
+                                }
+                        }
+                        break;
+
                 default:
                         break;
                 }
@@ -775,6 +821,7 @@ static void print_iter(const char *label, const char *name,
                                 bt_device_disconn(async_queue, dev);
                         }
                 }
+                rl_printf("%s%s is XXX\n", label, name);
 		break;
 	case DBUS_TYPE_UINT32:
 		dbus_message_iter_get_basic(iter, &valu32);
