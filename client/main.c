@@ -538,7 +538,8 @@ static gpointer state_handle(gpointer data)
                         break;
 
                 case BT_EVENT_DEVICE_RECONN:
-                        /* try to re-connect the device with a 5s timer in device hash */
+                        /* timeout, try to re-connect the device with a 5s timer
+                           in device hash */
                         reconn_devices(device_hash);
                         break;
 
@@ -546,48 +547,45 @@ static gpointer state_handle(gpointer data)
                         /* device connected, update hash table, try to read the value and
                            send the result to server */
                         dev = event->payload;
-                        dev_type = find_bt_type(dev->name,
+                        device = g_hash_table_lookup(device_hash, dev->address);
+                        if (device) {
+                                device->connected = 1;
+                                dev_type = device->type;
+                        } else {
+                                dev_type = find_bt_type(dev->name,
                                                 strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
-                        if (dev_type != TYPE_NONE) {
-                                dev->type = dev_type;
-                                device = g_slice_dup(Device, dev);
-                                address = strdup(dev->address);
-                                g_hash_table_insert(device_hash,
-                                                    address,
-                                                    device);
-				display_hash_table(device_hash);
-                                switch (dev_type) {
-                                case TYPE_RBP:
-                                        /* wait cmd and recv the data */
-                                        break;
-
-                                case TYPE_801B:
-                                        /* wait cmd and recv the data */
-                                        break;
-
-                                default:
-                                        break;
+                                if (dev_type != TYPE_NONE) {
+                                        dev->type = dev_type;
+                                        device = g_slice_dup(Device, dev);
+                                        address = strdup(dev->address);
+                                        g_hash_table_insert(device_hash,
+                                                            address,
+                                                            device);
                                 }
+                        }
+                        switch (dev_type) {
+                        case TYPE_RBP:
+                                /* wait cmd and recv the data */
+                                break;
+
+                        case TYPE_801B:
+                                /* wait cmd and recv the data */
+                                break;
+
+                        default:
+                                break;
                         }
                         break;
 
                 case BT_EVENT_DEVICE_DISCONN:
-                        /* Update the device status ? */
+                        /* Update the device connect status */
                         dev = event->payload;
-                        dev_type = find_bt_type(dev->name,
-                                                strlen(dev->name),
-                                                device_keys,
-                                                NELEMS(device_keys));
-                        if (dev_type != TYPE_NONE) {
-                                dev->type = dev_type;
-                                device = g_slice_dup(Device, dev);
-                                address = strdup(dev->address);
-                                g_hash_table_insert(device_hash,
-                                                    address,
-                                                    device);
-				display_hash_table(device_hash);
+                        device = g_hash_table_lookup(device_hash, dev->address);
+                        if (device) {
+                                device->connected = 0;
+                                dev->type = device->type;
                                 switch (dev_type) {
                                 case TYPE_RBP:
                                         break;
@@ -598,6 +596,7 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 }
                         }
+                        display_hash_table(device_hash);
                         break;
 
                 default:
