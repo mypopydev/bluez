@@ -22,7 +22,7 @@ client_bluetoothctl_SOURCES = client/main.c \
 					attrib/att.c attrib/gatt.c \
 					attrib/gattrib.c btio/btio.c \
 					attrib/gatttool.h attrib/interactive.c \
-					attrib/utils.c src/log.c
+					attrib/utils.c src/log.c client/gattlib.h client/gattlib.c
 client_bluetoothctl_LDADD = gdbus/libgdbus-internal.la @GLIB_LIBS@ @DBUS_LIBS@ lib/libbluetooth-internal.la \
 			src/libshared-glib.la \
 				-lreadline -lbluetooth
