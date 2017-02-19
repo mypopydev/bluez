@@ -51,6 +51,8 @@
 #include "http_client.h"
 #include "rl_protocol.h"
 #include "utils.h"
+//#include "attrib/utils.h"
+#include "gattlib.h"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -193,6 +195,7 @@ static void agent_on()
         snprintf(event->cmd, 255, "agent on");
         LOG("S -> C: %s\n", event->cmd);
         g_async_queue_push (cmd_queue, event);
+        //sleep(2);
 }
 
 static void default_agent()
@@ -267,8 +270,16 @@ static Device *find_device_by_address(GHashTable *hash_table, const char *addres
         return NULL;
 }
 
+gboolean match_device_name(gpointer key, gpointer value, gpointer user_data)
+{
+        char *name = (char *)user_data;
+        Device *device = value;
+        return  match(name, (char *)device->name);
+}
+
 static Device *find_device_by_name(GHashTable *hash_table, const char *name)
 {
+        /*
         GHashTableIter iter;
         gpointer key, value;
         char *addr = key;
@@ -276,20 +287,34 @@ static Device *find_device_by_name(GHashTable *hash_table, const char *name)
 
         g_hash_table_iter_init(&iter, hash_table);
         while (g_hash_table_iter_next(&iter, &key, &value)) {
-                if (match((char *)name, (char *)device->name))
+                if (device && device->name && match((char *)name, (char *)device->name))
 			return device;
         }
+        */
+        Device *device = NULL;
+        device = g_hash_table_find(hash_table, match_device_name, name);
 
-        return NULL;
+        return device;
 }
 
 void reconn_device(gpointer key, gpointer value, gpointer user_data)
 {
 	LOG("%s \n", key);
 	Device *dev = value;
-        if (dev && dev->connected != 1 && dev->type != TYPE_RBP)
-                connect_device(dev->address);
-	printf("    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d\n" ,
+        GError *gerr = NULL;
+	GIOChannel *chan;
+
+        //if (dev && dev->connected != 1 && dev->type != TYPE_RBP) {
+        if (dev && dev->connected != 1) {
+                //connect_device(dev->address);
+                chan = gatt_connect("hci0", dev->address, "public", "low",
+                                    0, 0, connect_cb, &gerr);
+                if (chan == NULL) {
+                        g_printerr("=======%s\n", gerr->message);
+                        g_clear_error(&gerr);
+                }
+        }
+	printf("\n    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d\n" ,
 	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type);
 }
 
@@ -462,12 +487,14 @@ static gpointer state_handle(gpointer data)
                                         connect_device(address);
                                 case TYPE_801B:
                                         trust_device(address);
-                                        connect_device(address);
+                                        //connect_device(address);
                                         break;
                                 default:
                                         break;
                                 }
                         }
+                        LOG(" <<<<<< OLD >>>>>>\n");
+                        display_hash_table(device_hash);
                         break;
 
                 case BT_EVENT_DEVICE_NEW:
@@ -491,19 +518,22 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 case TYPE_801B:
                                         trust_device(address);
-                                        connect_device(address);
+                                        //connect_device(address);
                                         break;
                                 default:
                                         break;
                                 }
                         }
-
+                        LOG(" <<<<<< NEW >>>>>>\n");
+                        display_hash_table(device_hash);
                         break;
 
                 case BT_EVENT_DEVICE_DEL:
+                        dev = event->payload;
                         g_hash_table_remove(device_hash,
                                             dev->address);
 
+                        LOG(" <<<<<< DEL >>>>>>\n");
 			display_hash_table(device_hash);
                         break;
 
@@ -529,12 +559,14 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 case TYPE_801B:
                                         trust_device(address);
-                                        connect_device(address);
+                                        //connect_device(address);
                                         break;
                                 default:
                                         break;
                                 }
                         }
+                        LOG(" <<<<<< CHG >>>>>>\n");
+			display_hash_table(device_hash);
                         break;
 
                 case BT_EVENT_DEVICE_RECONN:
@@ -560,6 +592,7 @@ static gpointer state_handle(gpointer data)
                                         dev->type = dev_type;
                                         device = g_slice_dup(Device, dev);
                                         address = strdup(dev->address);
+                                        device->connected = 1;
                                         g_hash_table_insert(device_hash,
                                                             address,
                                                             device);
@@ -577,6 +610,8 @@ static gpointer state_handle(gpointer data)
                         default:
                                 break;
                         }
+                        LOG(" <<<<< CONN >>>>>>\n");
+			display_hash_table(device_hash);
                         break;
 
                 case BT_EVENT_DEVICE_DISCONN:
@@ -596,6 +631,7 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 }
                         }
+                        LOG(" <<<<<< DISCONN >>>>>>\n");
                         display_hash_table(device_hash);
                         break;
 
@@ -793,8 +829,10 @@ static void print_iter(const char *label, const char *name,
 	}
 
         /* XXX: FIXME */
+        /*
         if (match((char *)"Device", (char *)label) && !(match((char *)"Connected", (char *)name)))
                 return;
+        */
 
 	switch (dbus_message_iter_get_arg_type(iter)) {
 	case DBUS_TYPE_INVALID:
@@ -813,8 +851,8 @@ static void print_iter(const char *label, const char *name,
                         Device *dev = g_slice_new0(Device);
                         snprintf(dev->address, sizeof(dev->address), "%s", label+strlen("Device "));
                         if (valbool == TRUE) {
-                                //dev->connected = 1;
-                                //bt_device_conn(async_queue, dev);
+                                dev->connected = 1;
+                                bt_device_conn(async_queue, dev);
                         } else {
                                 dev->connected = 0;
                                 bt_device_disconn(async_queue, dev);
