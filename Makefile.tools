@@ -22,7 +22,21 @@ client_bluetoothctl_SOURCES = client/main.c \
 					attrib/att.c attrib/gatt.c \
 					attrib/gattrib.c btio/btio.c \
 					attrib/gatttool.h attrib/interactive.c \
-					attrib/utils.c src/log.c client/gattlib.h client/gattlib.c
+					attrib/utils.c src/log.c client/gattlib.h client/gattlib.c \
+					client/gattclient/config.h client/gattclient/io.h client/gattclient/l2cap.h client/gattclient/att.h client/gattclient/att.c \
+					client/gattclient/bluetooth.h client/gattclient/bluetooth.c \
+					client/gattclient/gatt-db.h client/gattclient/gatt-db.c \
+					client/gattclient/gatt-helpers.h client/gattclient/gatt-helpers.c \
+					client/gattclient/gatt-client.h client/gattclient/gatt-client.c \
+					client/gattclient/hci.h client/gattclient/hci.c \
+					client/gattclient/mainloop.h client/gattclient/mainloop.c \
+					client/gattclient/queue.h client/gattclient/queue.c \
+					client/gattclient/uuid.h client/gattclient/uuid.c \
+					client/gattclient/crypto.h client/gattclient/crypto.c \
+					client/gattclient/timeout.h client/gattclient/timeout-glib.c \
+					client/gattclient/io-mainloop.c
+					
+					
 client_bluetoothctl_LDADD = gdbus/libgdbus-internal.la @GLIB_LIBS@ @DBUS_LIBS@ lib/libbluetooth-internal.la \
 			src/libshared-glib.la \
 				-lreadline -lbluetooth
