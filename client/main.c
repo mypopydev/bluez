@@ -52,7 +52,7 @@
 #include "rl_protocol.h"
 #include "utils.h"
 //#include "attrib/utils.h"
-#include "gattlib.h"
+//#include "gattlib.h"
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -307,12 +307,14 @@ void reconn_device(gpointer key, gpointer value, gpointer user_data)
         //if (dev && dev->connected != 1 && dev->type != TYPE_RBP) {
         if (dev && dev->connected != 1) {
                 //connect_device(dev->address);
+            /*
                 chan = gatt_connect("hci0", dev->address, "public", "low",
                                     0, 0, connect_cb, &gerr);
                 if (chan == NULL) {
                         g_printerr("=======%s\n", gerr->message);
                         g_clear_error(&gerr);
                 }
+            */
         }
 	printf("\n    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d\n" ,
 	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type);
