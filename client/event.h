@@ -22,6 +22,7 @@
 #define __EVENT_H__
 
 #include <glib.h>
+#include <unistd.h>
 
 enum _BTEventType
 {
@@ -139,6 +140,8 @@ struct _Device {
         int  connected;
 
         enum BTTYPE type;
+
+        pid_t pid; /* per device a process ? */
 };
 
 typedef struct _Device Device;

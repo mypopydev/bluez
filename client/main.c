@@ -53,6 +53,9 @@
 #include "utils.h"
 //#include "attrib/utils.h"
 //#include "gattlib.h"
+#include <sys/un.h>
+#include <sys/socket.h>
+#include <ctype.h>
 
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
@@ -86,6 +89,15 @@ static GDBusProxy *default_dev;
 static GDBusProxy *default_attr;
 static GDBusProxy *ad_manager;
 static GList *ctrl_list;
+
+static int server_fd;  /* Server <- Client */
+static GIOChannel *server_io;
+
+static int client_fd; /* Server -> Client */
+static GIOChannel *client_io;
+
+#define SERVER "/tmp/ud_bluetooth_main"
+#define CLIENT "/tmp/ud_bluetooth_client"
 
 GList *device_list = NULL;
 GHashTable *device_hash = NULL;
@@ -586,6 +598,8 @@ static gpointer state_handle(gpointer data)
                                 device->connected = 1;
                                 dev_type = device->type;
                         } else {
+                                /* can't find the devie, but we will
+                                   try to insert to hash table */
                                 dev_type = find_bt_type(dev->name,
                                                 strlen(dev->name),
                                                 device_keys,
@@ -749,6 +763,40 @@ static void disconnect_handler(DBusConnection *connection, void *user_data)
 	ctrl_list = NULL;
 
 	default_ctrl = NULL;
+}
+
+/* receive the message from client */
+static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
+                               gpointer user_data)
+{
+        char buf[128];
+        ssize_t numBytes;
+        struct sockaddr_un claddr;
+        socklen_t len;
+	if (condition & G_IO_IN) {
+                 len = sizeof(struct sockaddr_un);
+                 numBytes = recvfrom(server_fd, buf, 128, 0,
+                                     (struct sockaddr *) &claddr, &len);
+                 if (numBytes == -1)
+                         printf("recvfrom");
+
+                 printf("Server received %ld bytes from %s\n", (long) numBytes,
+                        claddr.sun_path);
+
+                 /*
+                 for (j = 0; j < numBytes; j++)
+                         buf[j] = toupper((unsigned char) buf[j]);
+                 */
+                 printf(" C-> S : %s\n", buf);
+                 return TRUE;
+	}
+
+	if (condition & (G_IO_HUP | G_IO_ERR | G_IO_NVAL)) {
+		g_main_loop_quit(main_loop);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 
 static void print_adapter(GDBusProxy *proxy, const char *description)
@@ -3114,6 +3162,27 @@ static void client_ready(GDBusClient *client, void *user_data)
 		input = setup_standard_input();
 }
 
+static int create_sock(char *name)
+{
+        struct sockaddr_un svaddr, claddr;
+        int sfd, j;
+
+        /* Create  socket; bind to unique pathname */
+        sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
+        if (sfd == -1)
+                g_printerr("create unix socket fail\n");
+
+        memset(&claddr, 0, sizeof(struct sockaddr_un));
+        claddr.sun_family = AF_UNIX;
+        snprintf(claddr.sun_path, sizeof(claddr.sun_path),
+                 name);
+
+        if (bind(sfd, (struct sockaddr *) &claddr, sizeof(struct sockaddr_un)) == -1)
+                g_printerr("bind erron\n");
+
+        return sfd;
+}
+
 int main(int argc, char *argv[])
 {
 	GOptionContext *context;
@@ -3171,6 +3240,11 @@ int main(int argc, char *argv[])
         cmd_queue = g_async_queue_new ();
         cmd_thread = g_thread_new("cmd thread", cmd_handle, cmd_queue);
 
+        /*
+        legatt_queue = g_async_queue_new ();
+        legatt_thread = g_thread_new("legatt thread", legatt_handle, legatt_queue);
+        */
+
 	signal = setup_signalfd();
 	client = g_dbus_client_new(dbus_conn, "org.bluez", "/org/bluez");
 
@@ -3185,6 +3259,14 @@ int main(int argc, char *argv[])
 
         /* pooling the device status per 5s */
         g_timeout_add_seconds(5, recurser_start, NULL);
+
+        /* create server/client socket */
+        server_fd = create_sock(SERVER);
+        server_io = g_io_channel_unix_new(server_fd);
+        guint server_source = g_io_add_watch(server_io,
+                                             G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL,
+                                             server_handler, NULL);
+        client_fd = create_sock(CLIENT);
 
 	g_main_loop_run(main_loop);
 
