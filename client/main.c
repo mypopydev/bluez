@@ -666,7 +666,12 @@ static gpointer state_handle(gpointer data)
                                 case TYPE_RBP:
                                         trust_device(address);
                                         connect_device(address);
+                                        break;
                                 case TYPE_801B:
+                                        trust_device(address);
+                                        //connect_device(address);
+                                        break;
+                                case TYPE_601B:
                                         trust_device(address);
                                         //connect_device(address);
                                         break;
@@ -698,6 +703,10 @@ static gpointer state_handle(gpointer data)
                                         connect_device(address);
                                         break;
                                 case TYPE_801B:
+                                        trust_device(address);
+                                        //connect_device(address);
+                                        break;
+                                case TYPE_601B:
                                         trust_device(address);
                                         //connect_device(address);
                                         break;
@@ -739,6 +748,10 @@ static gpointer state_handle(gpointer data)
                                         connect_device(address);
                                         break;
                                 case TYPE_801B:
+                                        trust_device(address);
+                                        //connect_device(address);
+                                        break;
+                                case TYPE_601B:
                                         trust_device(address);
                                         //connect_device(address);
                                         break;
@@ -790,6 +803,10 @@ static gpointer state_handle(gpointer data)
                                 /* wait cmd and recv the data */
                                 break;
 
+                        case TYPE_601B:
+                                /* wait cmd and recv the data */
+                                break;
+
                         default:
                                 break;
                         }
@@ -810,6 +827,10 @@ static gpointer state_handle(gpointer data)
 
                                 case TYPE_801B:
                                         break;
+
+                                case TYPE_601B:
+                                        break;
+
                                 default:
                                         break;
                                 }
