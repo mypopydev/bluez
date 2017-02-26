@@ -178,6 +178,74 @@ static const char * const ad_arguments[] = {
 	NULL
 };
 
+static int create_server_sock(char *name)
+{
+        struct sockaddr_un svaddr, claddr;
+        int sfd, j;
+
+        if (remove(name) == -1 && errno != ENOENT)
+                g_printerr("remove unix sock data path\n");
+
+        /* Create  socket; bind to unique pathname */
+        sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
+        if (sfd == -1)
+                g_printerr("create unix socket fail\n");
+
+        memset(&claddr, 0, sizeof(struct sockaddr_un));
+        claddr.sun_family = AF_UNIX;
+        snprintf(claddr.sun_path, sizeof(claddr.sun_path),
+                 name);
+
+        if (bind(sfd, (struct sockaddr *) &claddr, sizeof(struct sockaddr_un)) == -1)
+                g_printerr("bind error\n");
+
+        return sfd;
+}
+
+static int create_client_sock(char *name)
+{
+        struct sockaddr_un svaddr, claddr;
+        int sfd, j;
+        char path[128];
+
+        snprintf(path, sizeof(path),
+                 "%s.%ld", name, getpid());
+
+        if (remove(path) == -1 && errno != ENOENT)
+                g_printerr("remove unix sock data path\n");
+
+        /* Create  socket; bind to unique pathname */
+        sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
+        if (sfd == -1)
+                g_printerr("create unix socket fail\n");
+
+        memset(&claddr, 0, sizeof(struct sockaddr_un));
+        claddr.sun_family = AF_UNIX;
+        snprintf(claddr.sun_path, sizeof(claddr.sun_path),
+                 "%s", path);
+/*
+        if (bind(sfd, (struct sockaddr *) &claddr, sizeof(struct sockaddr_un)) == -1)
+                g_printerr("bind error\n");
+*/
+
+        return sfd;
+}
+
+static int sock_send_cmd(int sock, char *client_path, char *cmd, int cmd_len)
+{
+        struct sockaddr_un svaddr;
+        int len = sizeof(struct sockaddr_un);
+
+        memset(&svaddr, 0, sizeof(struct sockaddr_un));
+        svaddr.sun_family = AF_UNIX;
+        strncpy(svaddr.sun_path, client_path, sizeof(svaddr.sun_path) - 1);
+
+        if (sendto(sock, cmd, cmd_len, 0, (struct sockaddr *) &svaddr, len) != cmd_len)
+                printf("sendto");
+
+        return 0;
+}
+
 void print_key_value(gpointer key, gpointer value, gpointer user_data)
 {
 	LOG("%s \n", key);
@@ -269,10 +337,17 @@ static void trust_device(char *bdaddr)
 
 static void connect_device(char *bdaddr)
 {
+        /*
         CMD *event = g_slice_new0 (CMD);
 	snprintf(event->cmd, 255, "connect %s", bdaddr);
         LOG("S -> C: %s\n", event->cmd);
         g_async_queue_push (cmd_queue, event);
+        */
+        char cmd[128] = {0};
+        snprintf(cmd, 128, "connect %s", bdaddr);
+        LOG("[Sock]S -> C: %s\n", cmd);
+
+        sock_send_cmd(client_fd, CLIENT, cmd, strlen(cmd));
 }
 
 static Device *find_device_by_address(GHashTable *hash_table, const char *address)
@@ -3254,27 +3329,6 @@ static void client_ready(GDBusClient *client, void *user_data)
 		input = setup_standard_input();
 }
 
-static int create_sock(char *name)
-{
-        struct sockaddr_un svaddr, claddr;
-        int sfd, j;
-
-        /* Create  socket; bind to unique pathname */
-        sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
-        if (sfd == -1)
-                g_printerr("create unix socket fail\n");
-
-        memset(&claddr, 0, sizeof(struct sockaddr_un));
-        claddr.sun_family = AF_UNIX;
-        snprintf(claddr.sun_path, sizeof(claddr.sun_path),
-                 name);
-
-        if (bind(sfd, (struct sockaddr *) &claddr, sizeof(struct sockaddr_un)) == -1)
-                g_printerr("bind error\n");
-
-        return sfd;
-}
-
 int main(int argc, char *argv[])
 {
 	GOptionContext *context;
@@ -3303,6 +3357,7 @@ int main(int argc, char *argv[])
 
         get_mac("eno1", mac);
         //gat_mac("")
+        /*
         struct http_response *resp = self_check();
 
         struct http_response *oxyresp = send_data(1, "88:C2:55:BB:CC:DD", "67;99");
@@ -3310,6 +3365,7 @@ int main(int argc, char *argv[])
         struct http_response *glucose_resp = send_data(2, "88:C2:55:BC:73:AF", "4.9");
 
         struct http_response *blood_resp = send_data(3, "8C:DE:52:FB:C8:CE", "79;22.1;15.6");
+        */
 	main_loop = g_main_loop_new(NULL, FALSE);
 	dbus_conn = g_dbus_setup_bus(DBUS_BUS_SYSTEM, NULL, NULL);
         async_queue = g_async_queue_new ();
@@ -3360,12 +3416,12 @@ int main(int argc, char *argv[])
         g_timeout_add_seconds(5, recurser_start, NULL);
 
         /* create server/client socket */
-        server_fd = create_sock(SERVER);
+        server_fd = create_server_sock(SERVER);
         server_io = g_io_channel_unix_new(server_fd);
         guint server_source = g_io_add_watch(server_io,
                                              G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL,
                                              server_handler, NULL);
-        client_fd = create_sock(CLIENT);
+        client_fd = create_client_sock(CLIENT);
 
 	g_main_loop_run(main_loop);
 
