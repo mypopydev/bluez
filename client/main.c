@@ -55,6 +55,7 @@
 //#include "gattlib.h"
 #include <sys/un.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <ctype.h>
 
 /* String display constants */
@@ -381,7 +382,15 @@ struct http_response *self_check()
         char *enc = NULL;
         char cmd[128] = {0};
 
-        snprintf(cmd, 127, "{t=%ld;}", cur_time);
+        char date[20];
+	struct timeval tv;
+
+	/* print the timestamp */
+	gettimeofday(&tv, NULL);
+	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
+	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+
+        snprintf(cmd, 127, "{t=%s;}", date);
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=01&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
@@ -391,16 +400,24 @@ struct http_response *self_check()
         return http_resp;
 }
 
-struct http_response *send_data(char *devmac, int val)
+struct http_response *send_data(int index, char *devmac, char *val)
 {
         char url[1024] = {0};
         struct http_response *http_resp = NULL;
         time_t cur_time = time(NULL);
         char *enc = NULL;
         char cmd[128] = {0};
-        int index = 1;
 
-        snprintf(cmd, 127, "{n=%d,e=%s,t=%ld,d=%s;}", index, devmac, cur_time, val); /* n(int),e(String),t(Long),d(String);n,e,t,d */
+        char date[20];
+	struct timeval tv;
+
+	/* print the timestamp */
+	gettimeofday(&tv, NULL);
+	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
+	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+
+        /* n(int),e(String),t(Long),d(String);n,e,t,d */
+        snprintf(cmd, 127, "{n=%d,e=%s,t=%s,d=%s;}", index, devmac, date, val);
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=02&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
@@ -419,7 +436,15 @@ struct http_response *close_device()
         char *enc = NULL;
         char cmd[128] = {0};
 
-        snprintf(cmd, 127, "{t=%ld;}", cur_time);
+        char date[20];
+	struct timeval tv;
+
+	/* print the timestamp */
+	gettimeofday(&tv, NULL);
+	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
+	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+
+        snprintf(cmd, 127, "{t=%s;}", date);
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=03&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
@@ -438,7 +463,7 @@ struct http_response *init_device(int inited)
         char *enc = NULL;
         char cmd[128] = {0};
 
-        snprintf(cmd, 127, "{s=%ld;}", !!inited);
+        snprintf(cmd, 127, "{s=%d;}", !!inited);
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=04&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
@@ -449,16 +474,23 @@ struct http_response *init_device(int inited)
         return http_resp;
 }
 
-struct http_response *fail_device(char *devmac, char *reason)
+struct http_response *fail_device(int index, char *devmac, char *reason)
 {
         char url[1024] = {0};
         struct http_response *http_resp = NULL;
         time_t cur_time = time(NULL);
         char *enc = NULL;
         char cmd[128] = {0};
-        int index = 1;
+        //int index = 1;
+        char date[20];
+	struct timeval tv;
 
-        snprintf(cmd, 127, "{n=%d,e=%s,t=%ld,f=%s;}", index, devmac, cur_time, reason); /* n(int),e(String),t(Long),f(String);n,e,t,f */
+	/* print the timestamp */
+	gettimeofday(&tv, NULL);
+	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
+	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+
+        snprintf(cmd, 127, "{n=%d,e=%s,t=%s,f=%s;}", index, devmac, date, reason); /* n(int),e(String),t(Long),f(String);n,e,t,f */
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=05&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
@@ -476,9 +508,16 @@ struct http_response *version_check(char *devmac, char *reason)
         time_t cur_time = time(NULL);
         char *enc = NULL;
         char cmd[128] = {0};
-        int index = 1;
 
-        snprintf(cmd, 127, "{e=%s,t=%ld, n=%s;}", devmac, cur_time, reason); /* e(String),t(Long),n(String);e,t,n */
+        char date[20];
+	struct timeval tv;
+
+	/* print the timestamp */
+	gettimeofday(&tv, NULL);
+	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
+	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+
+        snprintf(cmd, 127, "{e=%s,t=%s,n=%s;}", devmac, date, reason); /* e(String),t(Long),n(String);e,t,n */
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=06&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
@@ -3231,7 +3270,7 @@ static int create_sock(char *name)
                  name);
 
         if (bind(sfd, (struct sockaddr *) &claddr, sizeof(struct sockaddr_un)) == -1)
-                g_printerr("bind erron\n");
+                g_printerr("bind error\n");
 
         return sfd;
 }
@@ -3262,8 +3301,15 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
-        get_mac("eth0", mac);
+        get_mac("eno1", mac);
+        //gat_mac("")
         struct http_response *resp = self_check();
+
+        struct http_response *oxyresp = send_data(1, "88:C2:55:BB:CC:DD", "67;99");
+
+        struct http_response *glucose_resp = send_data(2, "88:C2:55:BC:73:AF", "4.9");
+
+        struct http_response *blood_resp = send_data(3, "8C:DE:52:FB:C8:CE", "79;22.1;15.6");
 	main_loop = g_main_loop_new(NULL, FALSE);
 	dbus_conn = g_dbus_setup_bus(DBUS_BUS_SYSTEM, NULL, NULL);
         async_queue = g_async_queue_new ();
