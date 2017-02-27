@@ -131,7 +131,7 @@ enum BTTYPE {
 };
 
 struct _Device {
-        char address[64]; /* as hash key */
+        char address[18]; /* as hash key */
         char name[64];
 
         int  paired;

@@ -221,7 +221,7 @@ static int create_client_sock(char *name)
 
         memset(&claddr, 0, sizeof(struct sockaddr_un));
         claddr.sun_family = AF_UNIX;
-        snprintf(claddr.sun_path, sizeof(claddr.sun_path),
+        snprintf(&claddr.sun_path[1], sizeof(claddr.sun_path)-2,
                  "%s", path);
 /*
         if (bind(sfd, (struct sockaddr *) &claddr, sizeof(struct sockaddr_un)) == -1)
@@ -231,7 +231,7 @@ static int create_client_sock(char *name)
         return sfd;
 }
 
-static int sock_send_cmd(int sock, char *client_path, char *cmd, int cmd_len)
+int sock_send_cmd(int sock, char *client_path, char *cmd, int cmd_len)
 {
         struct sockaddr_un svaddr;
         int len = sizeof(struct sockaddr_un);
@@ -344,7 +344,7 @@ static void connect_device(char *bdaddr)
         g_async_queue_push (cmd_queue, event);
         */
         char cmd[128] = {0};
-        snprintf(cmd, 128, "connect %s", bdaddr);
+        snprintf(cmd, strlen(bdaddr)+strlen("connect ")+1, "connect %s", bdaddr);
         LOG("[Sock]S -> C: %s\n", cmd);
 
         sock_send_cmd(client_fd, CLIENT, cmd, strlen(cmd));
@@ -657,7 +657,8 @@ static gpointer state_handle(gpointer data)
                                 /* XXX: find this device in hash table */
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
-                                address = strdup(dev->address);
+                                device->pid = -1;
+                                address = strndup(dev->address, 17);
                                 g_hash_table_insert(device_hash,
                                                     address,
                                                     device);
@@ -669,11 +670,11 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 case TYPE_801B:
                                         trust_device(address);
-                                        //connect_device(address);
+                                        connect_device(address);
                                         break;
                                 case TYPE_601B:
                                         trust_device(address);
-                                        //connect_device(address);
+                                        connect_device(address);
                                         break;
                                 default:
                                         break;
@@ -692,7 +693,8 @@ static gpointer state_handle(gpointer data)
                         if (dev_type != TYPE_NONE) {
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
-                                address = strdup(dev->address);
+                                device->pid = -1;
+                                address = strndup(dev->address, 17);
                                 g_hash_table_insert(device_hash,
                                                     address,
                                                     device);
@@ -704,11 +706,11 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 case TYPE_801B:
                                         trust_device(address);
-                                        //connect_device(address);
+                                        connect_device(address);
                                         break;
                                 case TYPE_601B:
                                         trust_device(address);
-                                        //connect_device(address);
+                                        connect_device(address);
                                         break;
                                 default:
                                         break;
@@ -737,7 +739,7 @@ static gpointer state_handle(gpointer data)
                         if (dev_type != TYPE_NONE) {
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
-                                address = strdup(dev->address);
+                                address = strndup(dev->address, 17);
                                 g_hash_table_insert(device_hash,
                                                     address,
                                                     device);
@@ -749,11 +751,11 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 case TYPE_801B:
                                         trust_device(address);
-                                        //connect_device(address);
+                                        connect_device(address);
                                         break;
                                 case TYPE_601B:
                                         trust_device(address);
-                                        //connect_device(address);
+                                        connect_device(address);
                                         break;
                                 default:
                                         break;
@@ -787,7 +789,7 @@ static gpointer state_handle(gpointer data)
                                 if (dev_type != TYPE_NONE) {
                                         dev->type = dev_type;
                                         device = g_slice_dup(Device, dev);
-                                        address = strdup(dev->address);
+                                        address = strndup(dev->address, 17);
                                         device->connected = 1;
                                         g_hash_table_insert(device_hash,
                                                             address,
@@ -976,6 +978,18 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                          buf[j] = toupper((unsigned char) buf[j]);
                  */
                  printf(" C-> S : %s\n", buf);
+
+                 if (match("CONNECT", buf)) {
+                         Device *dev = g_slice_new0(Device);
+                         snprintf(dev->address, sizeof(dev->address), "%s", buf);
+                         dev->connected = 1;
+                         bt_device_conn(async_queue, dev);
+                 } else if (match("DISCONN", buf)) {
+                         Device *dev = g_slice_new0(Device);
+                         snprintf(dev->address, sizeof(dev->address), "%s", buf);
+                         dev->connected = 0;
+                         bt_device_disconn(async_queue, dev);
+                 }
                  return TRUE;
 	}
 
