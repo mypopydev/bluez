@@ -193,8 +193,7 @@ static int create_server_sock(char *name)
 
         memset(&claddr, 0, sizeof(struct sockaddr_un));
         claddr.sun_family = AF_UNIX;
-        snprintf(claddr.sun_path, sizeof(claddr.sun_path),
-                 name);
+        snprintf(claddr.sun_path, sizeof(claddr.sun_path),"%s", name);
 
         if (bind(sfd, (struct sockaddr *) &claddr, sizeof(struct sockaddr_un)) == -1)
                 g_printerr("bind error\n");
@@ -335,7 +334,7 @@ static void trust_device(char *bdaddr)
         g_async_queue_push (cmd_queue, event);
 }
 
-static void connect_device(char *bdaddr)
+static void connect_device(char *bdaddr, int type)
 {
         /*
         CMD *event = g_slice_new0 (CMD);
@@ -344,7 +343,11 @@ static void connect_device(char *bdaddr)
         g_async_queue_push (cmd_queue, event);
         */
         char cmd[128] = {0};
-        snprintf(cmd, strlen(bdaddr)+strlen("connect ")+1, "connect %s", bdaddr);
+        if (type == TYPE_RBP)
+                snprintf(cmd, strlen(bdaddr)+strlen("connect ")+1, "connect %s type %d", bdaddr, type);
+        else
+                snprintf(cmd, strlen(bdaddr)+strlen("connect ")+1, "connect %s", bdaddr);
+
         LOG("[Sock]S -> C: %s\n", cmd);
 
         sock_send_cmd(client_fd, CLIENT, cmd, strlen(cmd));
@@ -666,15 +669,15 @@ static gpointer state_handle(gpointer data)
                                 switch (dev_type) {
                                 case TYPE_RBP:
                                         trust_device(address);
-                                        connect_device(address);
+                                        connect_device(address, dev_type);
                                         break;
                                 case TYPE_801B:
                                         trust_device(address);
-                                        connect_device(address);
+                                        connect_device(address, dev_type);
                                         break;
                                 case TYPE_601B:
                                         trust_device(address);
-                                        connect_device(address);
+                                        connect_device(address, dev_type);
                                         break;
                                 default:
                                         break;
@@ -702,15 +705,15 @@ static gpointer state_handle(gpointer data)
                                 switch (dev_type) {
                                 case TYPE_RBP:
                                         trust_device(address);
-                                        connect_device(address);
+                                        connect_device(address, dev_type);
                                         break;
                                 case TYPE_801B:
                                         trust_device(address);
-                                        connect_device(address);
+                                        connect_device(address, dev_type);
                                         break;
                                 case TYPE_601B:
                                         trust_device(address);
-                                        connect_device(address);
+                                        connect_device(address, dev_type);
                                         break;
                                 default:
                                         break;
@@ -747,15 +750,15 @@ static gpointer state_handle(gpointer data)
                                 switch (dev_type) {
                                 case TYPE_RBP:
                                         trust_device(address);
-                                        connect_device(address);
+                                        connect_device(address, dev_type);
                                         break;
                                 case TYPE_801B:
                                         trust_device(address);
-                                        connect_device(address);
+                                        connect_device(address, dev_type);
                                         break;
                                 case TYPE_601B:
                                         trust_device(address);
-                                        connect_device(address);
+                                        connect_device(address, dev_type);
                                         break;
                                 default:
                                         break;
