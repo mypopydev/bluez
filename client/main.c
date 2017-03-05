@@ -245,6 +245,21 @@ int sock_send_cmd(int sock, char *client_path, char *cmd, int cmd_len)
         return 0;
 }
 
+int sock_send_client_cmd(int sock, char *client_path, char *cmd, int cmd_len)
+{
+        struct sockaddr_un svaddr;
+        int len = sizeof(struct sockaddr_un);
+
+        memset(&svaddr, 0, sizeof(struct sockaddr_un));
+        svaddr.sun_family = AF_UNIX;
+        strncpy(&svaddr.sun_path[1], client_path, sizeof(svaddr.sun_path) - 2);
+
+        if (sendto(sock, cmd, cmd_len, 0, (struct sockaddr *) &svaddr, len) != cmd_len)
+                printf("sendto client error");
+
+        return 0;
+}
+
 void print_key_value(gpointer key, gpointer value, gpointer user_data)
 {
 	LOG("%s \n", key);
@@ -344,11 +359,12 @@ static void connect_device(char *bdaddr, int type)
         */
         char cmd[128] = {0};
         if (type == TYPE_RBP)
-                snprintf(cmd, strlen(bdaddr)+strlen("connect ")+1, "connect %s type %d", bdaddr, type);
+                snprintf(cmd, strlen(bdaddr)+strlen("connect ")+2+strlen("type")+2,
+                         "connect %s type %d", bdaddr, type);
         else
                 snprintf(cmd, strlen(bdaddr)+strlen("connect ")+1, "connect %s", bdaddr);
 
-        LOG("[Sock]S -> C: %s\n", cmd);
+        LOG("[Sock] S -> C: %s\n", cmd);
 
         sock_send_cmd(client_fd, CLIENT, cmd, strlen(cmd));
 }
@@ -822,6 +838,13 @@ static gpointer state_handle(gpointer data)
 
                         case TYPE_801B:
                                 /* wait cmd and recv the data */
+                        {
+                                char client[128] = { 0 };
+                                char cmd[128] = { 0 };
+                                snprintf(&client[0], 127, "%s.%d", CLIENT, device->pid);
+                                snprintf(cmd, strlen("register-notify 0x35")+1, "register-notify 0x35");
+                                sock_send_client_cmd(client_fd, client, cmd, strlen(cmd));
+                        }
                                 break;
 
                         case TYPE_601B:
@@ -1061,7 +1084,8 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                  } else if (match("PROCESS", buf)) {
                          Device *dev = g_slice_new0(Device);
                          snprintf(dev->address, sizeof(dev->address), "%s", buf);
-                         dev->pid = atoi(buf+26);
+                         char *pid = strstr(buf, "PROCESS");
+                         dev->pid = atoi(pid+8);
                          bt_device_process_create(async_queue, dev);
                  } else if (match("CLOSEID", buf)) {
                          Device *dev = g_slice_new0(Device);
