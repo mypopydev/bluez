@@ -148,6 +148,25 @@ void bt_device_reconn(GAsyncQueue *event_queue, Device *dev)
         g_async_queue_push(event_queue, event);
 }
 
+void bt_device_process_create(GAsyncQueue *event_queue, Device *dev)
+{
+        BTEvent *event = g_slice_new0(BTEvent);
+        event->event_type = BT_EVENT_DEVICE_PID_CREATE;
+        event->payload = dev;
+
+        g_async_queue_push(event_queue, event);
+}
+
+void bt_device_process_close(GAsyncQueue *event_queue, Device *dev)
+{
+        BTEvent *event = g_slice_new0(BTEvent);
+        event->event_type = BT_EVENT_DEVICE_PID_CLOSE;
+        event->payload = dev;
+
+        g_async_queue_push(event_queue, event);
+}
+
+
 void bt_cmd_free (CMD *event)
 {
         if (event) {

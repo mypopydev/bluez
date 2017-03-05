@@ -53,8 +53,11 @@ enum _BTEventType
         BT_EVENT_DEVICE_CONN,   /* Device 8C:DE:52:FB:C8:CE Connected: yes */
         BT_EVENT_DEVICE_DISCONN,/* Device 8C:DE:52:FB:C8:CE Connected: no  */
 
-        BT_EVENT_DEVICE_CHG,   /* */
+        BT_EVENT_DEVICE_CHG,   /*  */
         BT_EVENT_DEVICE_DEL,   /* */
+
+        BT_EVENT_DEVICE_PID_CREATE, /* 8C:DE:52:FB:C8:CE PROCESS 798 */
+        BT_EVENT_DEVICE_PID_CLOSE,  /* 8C:DE:52:FB:C8:CE CLOSEID 798 */
 
         /*
           device reconn with a timer (now use a 5s timer)
@@ -157,6 +160,9 @@ void bt_device_conn(GAsyncQueue *event_queue, Device *dev);
 void bt_device_disconn(GAsyncQueue *event_queue, Device *dev);
 void bt_device_chg(GAsyncQueue *event_queue, Device *dev);
 void bt_device_del(GAsyncQueue *event_queue, Device *dev);
+
+void bt_device_process_create(GAsyncQueue *event_queue, Device *dev);
+void bt_device_process_close(GAsyncQueue *event_queue, Device *dev);
 
 void bt_device_reconn(GAsyncQueue *event_queue, Device *dev);
 

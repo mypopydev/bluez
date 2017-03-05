@@ -249,8 +249,8 @@ void print_key_value(gpointer key, gpointer value, gpointer user_data)
 {
 	LOG("%s \n", key);
 	Device *dev = value;
-	printf("    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d\n" ,
-	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type);
+	printf("    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d pid: %d\n" ,
+	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type, dev->pid);
 }
 
 void display_hash_table(GHashTable *table)
@@ -388,6 +388,22 @@ static Device *find_device_by_name(GHashTable *hash_table, const char *name)
         return device;
 }
 
+gboolean match_device_pid(gpointer key, gpointer value, gpointer user_data)
+{
+        int pid = *((int *)user_data);
+        Device *device = value;
+        return  (pid == device->pid);
+}
+
+static Device *find_device_by_pid(GHashTable *hash_table, int *pid)
+{
+        Device *device = NULL;
+        device = g_hash_table_find(hash_table, match_device_pid, pid);
+
+        return device;
+}
+
+
 void reconn_device(gpointer key, gpointer value, gpointer user_data)
 {
 	LOG("%s \n", key);
@@ -407,8 +423,8 @@ void reconn_device(gpointer key, gpointer value, gpointer user_data)
                 }
             */
         }
-	printf("\n    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d\n" ,
-	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type);
+	printf("\n    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d pid: %d\n" ,
+	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type, dev->pid);
 }
 
 void reconn_devices(GHashTable *table)
@@ -656,7 +672,7 @@ static gpointer state_handle(gpointer data)
                                                 strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
-                        if (dev_type != TYPE_NONE && find_device_by_name(device_hash, dev->address)) {
+                        if (dev_type != TYPE_NONE && find_device_by_name(device_hash, dev->name)) {
                                 /* XXX: find this device in hash table */
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
@@ -825,8 +841,8 @@ static gpointer state_handle(gpointer data)
                         device = g_hash_table_lookup(device_hash, dev->address);
                         if (device) {
                                 device->connected = 0;
-                                dev->type = device->type;
-                                switch (dev_type) {
+                                //dev->type = device->type;
+                                switch (device->type) {
                                 case TYPE_RBP:
                                         break;
 
@@ -844,6 +860,56 @@ static gpointer state_handle(gpointer data)
                         display_hash_table(device_hash);
                         break;
 
+                case BT_EVENT_DEVICE_PID_CREATE:
+                        /* Update the process status */
+                        dev = event->payload;
+                        device = g_hash_table_lookup(device_hash, dev->address);
+                        if (device) {
+                                device->pid = dev->pid;
+                                //dev->type = device->type;
+                                switch (device->type) {
+                                case TYPE_RBP:
+                                        break;
+
+                                case TYPE_801B:
+                                        break;
+
+                                case TYPE_601B:
+                                        break;
+
+                                default:
+                                        break;
+                                }
+                        }
+                        LOG(" <<<<<< PROCESS >>>>>>\n");
+                        display_hash_table(device_hash);
+                        break;
+
+                case BT_EVENT_DEVICE_PID_CLOSE:
+                        /* Update the process status */
+                        dev = event->payload;
+                        //device = g_hash_table_lookup(device_hash, dev->address);
+                        device = find_device_by_pid(device_hash, &dev->pid);
+                        if (device) {
+                                device->connected = 0;
+                                device->pid = -1;
+                                //dev->type = device->type;
+                                switch (device->type) {
+                                case TYPE_RBP:
+                                        break;
+
+                                case TYPE_801B:
+                                        break;
+
+                                case TYPE_601B:
+                                        break;
+
+                                default:
+                                        break;
+                                }
+                        }
+                        LOG(" <<<<<< CLOSE >>>>>>\n");
+                        display_hash_table(device_hash);
                 default:
                         break;
                 }
@@ -992,6 +1058,16 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                          snprintf(dev->address, sizeof(dev->address), "%s", buf);
                          dev->connected = 0;
                          bt_device_disconn(async_queue, dev);
+                 } else if (match("PROCESS", buf)) {
+                         Device *dev = g_slice_new0(Device);
+                         snprintf(dev->address, sizeof(dev->address), "%s", buf);
+                         dev->pid = atoi(buf+26);
+                         bt_device_process_create(async_queue, dev);
+                 } else if (match("CLOSEID", buf)) {
+                         Device *dev = g_slice_new0(Device);
+                         //snprintf(dev->address, sizeof(dev->address), "%s", buf);
+                         dev->pid = atoi(buf+8);
+                         bt_device_process_close(async_queue, dev);
                  }
                  return TRUE;
 	}
