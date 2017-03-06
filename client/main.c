@@ -771,9 +771,11 @@ static gpointer state_handle(gpointer data)
                                                 strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
-                        if (dev_type != TYPE_NONE) {
+                        if (dev_type != TYPE_NONE && find_device_by_name(device_hash, dev->name)) {
+                                /* XXX: find this device in hash table */
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
+                                device->pid = -1;
                                 address = strndup(dev->address, 17);
                                 g_hash_table_insert(device_hash,
                                                     address,
@@ -796,6 +798,7 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 }
                         }
+
                         LOG(" <<<<<< CHG >>>>>>\n");
 			display_hash_table(device_hash);
                         break;
@@ -815,7 +818,7 @@ static gpointer state_handle(gpointer data)
                                 device->connected = 1;
                                 dev_type = device->type;
                         } else {
-                                /* can't find the devie, but we will
+                                /* can't find the device, but we will
                                    try to insert to hash table */
                                 dev_type = find_bt_type(dev->name,
                                                 strlen(dev->name),
@@ -833,11 +836,15 @@ static gpointer state_handle(gpointer data)
                         }
                         switch (dev_type) {
                         case TYPE_RBP:
+                                /* XXX: get CONN event from bluez daemo ? */
                                 /* wait cmd and recv the data */
                                 break;
 
                         case TYPE_801B:
-                                /* wait cmd and recv the data */
+                                /*
+                                 *  wait cmd and recv the data
+                                 *  register-notify 0x35
+                                 */
                         {
                                 char client[128] = { 0 };
                                 char cmd[128] = { 0 };
@@ -864,7 +871,7 @@ static gpointer state_handle(gpointer data)
                         device = g_hash_table_lookup(device_hash, dev->address);
                         if (device) {
                                 device->connected = 0;
-                                //dev->type = device->type;
+
                                 switch (device->type) {
                                 case TYPE_RBP:
                                         break;
@@ -889,7 +896,6 @@ static gpointer state_handle(gpointer data)
                         device = g_hash_table_lookup(device_hash, dev->address);
                         if (device) {
                                 device->pid = dev->pid;
-                                //dev->type = device->type;
                                 switch (device->type) {
                                 case TYPE_RBP:
                                         break;
@@ -909,14 +915,13 @@ static gpointer state_handle(gpointer data)
                         break;
 
                 case BT_EVENT_DEVICE_PID_CLOSE:
-                        /* Update the process status */
+                        /* Update the process/connect status */
                         dev = event->payload;
-                        //device = g_hash_table_lookup(device_hash, dev->address);
                         device = find_device_by_pid(device_hash, &dev->pid);
                         if (device) {
                                 device->connected = 0;
                                 device->pid = -1;
-                                //dev->type = device->type;
+
                                 switch (device->type) {
                                 case TYPE_RBP:
                                         break;
@@ -1061,6 +1066,21 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                          //snprintf(dev->address, sizeof(dev->address), "%s", buf);
                          dev->pid = atoi(buf+8);
                          bt_device_process_close(async_queue, dev);
+                 } else if (match("DATA", buf)) {
+                         char address[18] = {0};
+                         char value[64] = {0};
+                         memcpy(address, buf+8, 17);
+                         char *tmp = strstr(buf, "DATA");
+                         if (tmp)
+                                 snprintf(value, 63, "%s", tmp);
+                         Device *dev = find_device_by_address(device_hash, address);
+                         if (dev) {
+                                 /* XXX: send data to server */
+                                 struct http_response *resp = send_data(dev->type, dev->address, value);
+                                 http_response_free(resp);
+                         } else {
+                                 printf("Can't find the device %s\n", address);
+                         }
                  }
                  return TRUE;
 	}
