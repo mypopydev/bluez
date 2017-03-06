@@ -121,13 +121,13 @@ struct device_key device_keys[] = {
 		.type = TYPE_RBP,
 		.regex = "RBP",
 	},
-        /*
 
+/*
 	{
 		.type = TYPE_IDONN,
 		.regex = "X6S-",
 	},
-        */
+*/
 
 	{
 		.type = TYPE_801B,
@@ -942,37 +942,6 @@ static gpointer state_handle(gpointer data)
 
         return NULL;
 }
-
-/*
-static void
-test_thread_pools_entry_func (gpointer data, gpointer user_data)
-{
-#ifdef DEBUG
-  guint id = 0;
-
-  id = GPOINTER_TO_UINT (data);
-#endif
-
-  DEBUG_MSG (("[pool] ---> [%3.3d] entered thread.", id));
-
-  G_LOCK (thread_counter_pools);
-  abs_thread_counter++;
-  running_thread_counter++;
-  G_UNLOCK (thread_counter_pools);
-
-  g_usleep (g_random_int_range (0, 4000));
-
-  G_LOCK (thread_counter_pools);
-  running_thread_counter--;
-  leftover_task_counter--;
-
-  DEBUG_MSG (("[pool] ---> [%3.3d] exiting thread (abs count:%ld, "
-	      "running count:%ld, left over:%ld)",
-	      id, abs_thread_counter,
-	      running_thread_counter, leftover_task_counter));
-  G_UNLOCK (thread_counter_pools);
-}
-*/
 
 static gboolean
 recurser_start (gpointer data)
