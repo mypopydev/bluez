@@ -48,7 +48,7 @@
 */
 struct http_response *handle_redirect_get(struct http_response *hresp, char *custom_headers)
 {
-	if (hresp->status_code_int > 300 && hresp->status_code_int < 399) {
+	if (hresp && hresp->status_code_int > 300 && hresp->status_code_int < 399) {
 		char *token = strtok(hresp->response_headers, "\r\n");
 		while(token != NULL) {
 			if(str_contains(token, "Location:")) {
@@ -125,7 +125,7 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 	/* Allocate memeory for htmlcontent */
 	struct http_response *hresp = (struct http_response *)malloc(sizeof(struct http_response));
 	if (hresp == NULL) {
-		printf("Unable to allocate memory for htmlcontent.");
+		printf("Unable to allocate memory for htmlcontent.\n");
 		return NULL;
 	}
         hresp->request_uri = NULL;
@@ -137,7 +137,7 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 
 	/* Create TCP socket */
 	if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
-                printf("Can't create TCP socket");
+                printf("Can't create TCP socket\n");
 		return NULL;
 	}
 
@@ -145,17 +145,17 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 	remote.sin_family = AF_INET;
   	tmpres = inet_pton(AF_INET, purl->ip, (void *)(&(remote.sin_addr.s_addr)));
   	if (tmpres < 0) {
-                printf("Can't set remote.sin_addr.s_addr");
+                printf("Can't set remote.sin_addr.s_addr\n");
                 return NULL;
   	} else if(tmpres == 0) {
-		printf("Not a valid IP");
+		printf("Not a valid IP\n");
                 return NULL;
   	}
 	remote.sin_port = htons(atoi(purl->port));
 
 	/* Connect */
 	if (connect(sock, (struct sockaddr *)&remote, sizeof(struct sockaddr)) < 0) {
-                printf("Could not connect");
+                printf("Could not connect\n");
                 return NULL;
 	}
 
@@ -164,7 +164,7 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 	while (sent < strlen(http_headers)) {
                 tmpres = send(sock, http_headers+sent, strlen(http_headers)-sent, 0);
                 if (tmpres == -1) {
-			printf("Can't send headers");
+			printf("Can't send headers\n");
 			return NULL;
 		}
 		sent += tmpres;
@@ -182,7 +182,7 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
                 free(response);
                 free(http_headers);
                 close(sock);
-                printf("Unabel to recieve");
+                printf("Unabel to recieve\n");
 		return NULL;
         }
 

@@ -505,8 +505,10 @@ struct http_response *self_check()
         snprintf(url, 1023, "%s%sg=%s&a=01&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
         g_free(enc);
-        printf("header %s\n", http_resp->request_headers);
-        printf("body %s\n", http_resp->body);
+        if (http_resp) {
+                printf("header %s\n", http_resp->request_headers);
+                printf("body %s\n", http_resp->body);
+        }
         return http_resp;
 }
 
@@ -532,8 +534,10 @@ struct http_response *send_data(int index, char *devmac, char *val)
         snprintf(url, 1023, "%s%sg=%s&a=02&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
         g_free(enc);
-        printf("header %s\n", http_resp->request_headers);
-        printf("body %s\n", http_resp->body);
+        if (http_resp) {
+                printf("header %s\n", http_resp->request_headers);
+                printf("body %s\n", http_resp->body);
+        }
 
         return http_resp;
 }
@@ -559,8 +563,10 @@ struct http_response *close_device()
         snprintf(url, 1023, "%s%sg=%s&a=03&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
         g_free(enc);
-        printf("header %s\n", http_resp->request_headers);
-        printf("body %s\n", http_resp->body);
+        if (http_resp) {
+                printf("header %s\n", http_resp->request_headers);
+                printf("body %s\n", http_resp->body);
+        }
 
         return http_resp;
 }
@@ -578,8 +584,10 @@ struct http_response *init_device(int inited)
         snprintf(url, 1023, "%s%sg=%s&a=04&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
         g_free(enc);
-        printf("header %s\n", http_resp->request_headers);
-        printf("body %s\n", http_resp->body);
+        if (http_resp) {
+                printf("header %s\n", http_resp->request_headers);
+                printf("body %s\n", http_resp->body);
+        }
 
         return http_resp;
 }
@@ -605,8 +613,10 @@ struct http_response *fail_device(int index, char *devmac, char *reason)
         snprintf(url, 1023, "%s%sg=%s&a=05&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
         g_free(enc);
-        printf("header %s\n", http_resp->request_headers);
-        printf("body %s\n", http_resp->body);
+        if (http_resp) {
+                printf("header %s\n", http_resp->request_headers);
+                printf("body %s\n", http_resp->body);
+        }
 
         return http_resp;
 }
@@ -632,8 +642,10 @@ struct http_response *version_check(char *devmac, char *reason)
         snprintf(url, 1023, "%s%sg=%s&a=06&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
         g_free(enc);
-        printf("header %s\n", http_resp->request_headers);
-        printf("body %s\n", http_resp->body);
+        if (http_resp) {
+                printf("header %s\n", http_resp->request_headers);
+                printf("body %s\n", http_resp->body);
+        }
 
         return http_resp;
 }
@@ -653,8 +665,10 @@ struct http_response *update_fw(char *devmac, char *reason)
         http_resp = http_get(url, NULL);
         g_free(enc);
 
-        printf("header %s\n", http_resp->request_headers);
-        printf("body %s\n", http_resp->body);
+        if (http_resp) {
+                printf("header %s\n", http_resp->request_headers);
+                printf("body %s\n", http_resp->body);
+        }
 
         return http_resp;
 }
