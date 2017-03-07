@@ -1069,10 +1069,10 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                  } else if (match("DATA", buf)) {
                          char address[18] = {0};
                          char value[64] = {0};
-                         memcpy(address, buf+8, 17);
+                         memcpy(address, buf, 17);
                          char *tmp = strstr(buf, "DATA");
                          if (tmp)
-                                 snprintf(value, 63, "%s", tmp);
+                                 snprintf(value, 63, "%s", tmp+5);
                          Device *dev = find_device_by_address(device_hash, address);
                          if (dev) {
                                  /* XXX: send data to server */
