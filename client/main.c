@@ -863,13 +863,28 @@ static gpointer state_handle(gpointer data)
                                 char client[128] = { 0 };
                                 char cmd[128] = { 0 };
                                 snprintf(&client[0], 127, "%s.%d", CLIENT, device->pid);
-                                snprintf(cmd, strlen("register-notify 0x35")+1, "register-notify 0x35");
-                                sock_send_client_cmd(client_fd, client, cmd, strlen(cmd));
+                                snprintf(cmd, strlen("register-notify 0x35\n"), "register-notify 0x35\n");
+                                sock_send_client_cmd(client_fd, client, cmd, strlen(cmd)+1);
                         }
                                 break;
 
                         case TYPE_601B:
                                 /* wait cmd and recv the data */
+                                /*
+                                 *  wait cmd and recv the data
+                                 *  register-notify 0x13
+                                 */
+                        {
+                                char client[128] = { 0 };
+                                char cmd[128] = { 0 };
+                                snprintf(&client[0], 127, "%s.%d", CLIENT, device->pid);
+                                //snprintf(cmd, strlen("register-notify 0x13")+1, "register-notify 0x13");
+                                snprintf(cmd, strlen("write-value -w 0x13 00 01 00\n"), "write-value -w 0x13 00 01 00\n");
+                                sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
+                                memset(cmd, 0, 128);
+                                snprintf(cmd, strlen("register-notify 0x13\n"), "register-notify 0x13\n");
+                                sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
+                        }
                                 break;
 
                         default:
