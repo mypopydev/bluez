@@ -820,7 +820,7 @@ static gpointer state_handle(gpointer data)
                 case BT_EVENT_DEVICE_RECONN:
                         /* timeout, try to re-connect the device with a 5s timer
                            in device hash */
-                        reconn_devices(device_hash);
+                        //reconn_devices(device_hash);
                         break;
 
                 case BT_EVENT_DEVICE_CONN:
@@ -991,7 +991,7 @@ static gpointer state_handle(gpointer data)
 static gboolean
 recurser_start (gpointer data)
 {
-        LOG("Device re-connect now !!!\n");
+    //LOG("Device re-connect now !!!\n");
         bt_device_reconn(async_queue, NULL);
         return TRUE;
 }
@@ -3530,7 +3530,8 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
-        get_mac("eno1", mac);
+        //get_mac("eno1", mac);
+        get_mac(argv[1], mac);
         //gat_mac("")
         /*
         struct http_response *resp = self_check();
