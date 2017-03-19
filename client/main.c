@@ -878,9 +878,20 @@ static gpointer state_handle(gpointer data)
                                 char client[128] = { 0 };
                                 char cmd[128] = { 0 };
                                 snprintf(&client[0], 127, "%s.%d", CLIENT, device->pid);
+
+                                memset(cmd, 0, 128);
+
+                                //snprintf(cmd, strlen("set-sign-key -c 1234\n"), "set-sign-key -c 1234\n");
+                                //sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
+
                                 //snprintf(cmd, strlen("register-notify 0x13")+1, "register-notify 0x13");
                                 snprintf(cmd, strlen("write-value -w 0x13 00 01 00\n"), "write-value -w 0x13 00 01 00\n");
                                 sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
+
+                                memset(cmd, 0, 128);
+                                snprintf(cmd, strlen("write-value -w 0x1b 00 02 00\n"), "write-value -w 0x1b 00 01 01\n");
+                                sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
+
                                 memset(cmd, 0, 128);
                                 snprintf(cmd, strlen("register-notify 0x13\n"), "register-notify 0x13\n");
                                 sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
@@ -1110,6 +1121,14 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                          } else {
                                  printf("Can't find the device %s\n", address);
                          }
+                 } else if (match("SNIFFER", buf)) {
+                         char address[18] = {0};
+                         char value[64] = {0};
+                         memcpy(address, buf, 17);
+                         char *tmp = strstr(buf, "SNIFFER");
+                         /* XXX: send data to server */
+                         struct http_response *resp = send_data(TYPE_XINGXIAO, address, "sniffer");
+                         http_response_free(resp);
                  }
                  return TRUE;
 	}
@@ -3578,6 +3597,10 @@ int main(int argc, char *argv[])
                                              G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL,
                                              server_handler, NULL);
         client_fd = create_client_sock(CLIENT);
+
+        /* sniffer xingxiao device */
+        LOG("[Sock] S -> C: %s\n", "sniffer");
+        sock_send_cmd(client_fd, CLIENT, "sniffer", strlen("sniffer")+1);
 
 	g_main_loop_run(main_loop);
 

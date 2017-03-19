@@ -99,6 +99,7 @@ enum BTTYPE {
 	//TYPE_IDONN,           /* name X6S-159C  */
 	TYPE_801B,              /* name SPO2:HC-801B */
         TYPE_601B,              /* name BG:HC-601B */
+        TYPE_XINGXIAO,          /* xingxiao */
 	TYPE_MODEM_NO_ANSWER,   /* NO ANSWER */
 	TYPE_MODEM_BUSY,        /* BUSY */
 	TYPE_MODEM_OK,          /* OK */
