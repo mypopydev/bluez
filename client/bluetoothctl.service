@@ -8,7 +8,7 @@ After=bluetooth.target gattclient.service
 [Service]
 #Type=dbus
 #BusName=org.bluez
-ExecStart=/root/bluetoothctl eno1
+ExecStart=/root/bluetoothctl eth0
 #NotifyAccess=main
 #WatchdogSec=10
 #Restart=on-failure
