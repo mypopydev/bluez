@@ -1,14 +1,14 @@
 [Unit]
-Description=Bluetoothctl service
-After=bluetooth.target gattclient.service
+Description=gattclient service
+After=bluetooth.target
 #Documentation=man:bluetoothd(8)
 #ConditionPathIsDirectory=/sys/class/bluetooth
 
 [Service]
 #Type=dbus
 #BusName=org.bluez
-#ExecStartPre=/root/gattclient wlp1s0
-ExecStart=/root/bluetoothctl eno1
+ExecStart=/root/gattclient wlp1s0
+#ExecStart=/root/bluetoothctl eno1
 #NotifyAccess=main
 #WatchdogSec=10
 #Restart=on-failure
@@ -20,4 +20,4 @@ StandardOutput=null
 
 [Install]
 WantedBy=multi-user.target
-Alias=btretire.service
+Alias=btretirepre.service
