@@ -481,8 +481,13 @@ void release_value(gpointer data)
 
 
 #define META_KEY "APP201600000XD8E"
-#define URL  "http://120.24.159.138:8820/"
-#define URL_INTFACE "deviceInterface/i.ashx?"
+//#define URL  "http://120.24.159.138:8820/"
+//#define URL_INTFACE "deviceInterface/i.ashx?"
+char URL[128] = {0};
+#define URL_INTFACE "/i.ashx?"
+
+#define CONFIG_FILE "/root/bluetoothctl.cfg"
+
 
 struct http_response *self_check()
 {
@@ -3504,6 +3509,30 @@ static void client_ready(GDBusClient *client, void *user_data)
 		input = setup_standard_input();
 }
 
+static int read_config(char *config)
+{
+        GKeyFile *keyfile;
+        GKeyFileFlags flags;
+        GError *error = NULL;
+        gsize length;
+        gchar *url;
+
+        // Create a new GKeyFile object and a bitwise list of flags.
+        keyfile = g_key_file_new ();
+        flags = G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS;
+
+        // Load the GKeyFile from keyfile.conf or return.
+        if (!g_key_file_load_from_file (keyfile, config, flags, &error)) {
+                g_error (error->message);
+                return -1;
+        }
+        printf("[URL]\n");
+        url = g_key_file_get_string(keyfile, "URL", "HTTP_SERVER", NULL);
+        printf("URL:%s\n", url);
+
+        snprintf(URL, strlen(url)+1, "%s", url);
+}
+
 int main(int argc, char *argv[])
 {
 	GOptionContext *context;
@@ -3533,6 +3562,8 @@ int main(int argc, char *argv[])
         //get_mac("eno1", mac);
         get_mac(argv[1], mac);
         //gat_mac("")
+        read_config(CONFIG_FILE);
+
         /*
         struct http_response *resp = self_check();
 
@@ -3542,6 +3573,7 @@ int main(int argc, char *argv[])
 
         struct http_response *blood_resp = send_data(3, "8C:DE:52:FB:C8:CE", "79;22.1;15.6");
         */
+
 	main_loop = g_main_loop_new(NULL, FALSE);
 	dbus_conn = g_dbus_setup_bus(DBUS_BUS_SYSTEM, NULL, NULL);
         async_queue = g_async_queue_new ();
