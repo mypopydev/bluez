@@ -140,6 +140,8 @@ struct device_key device_keys[] = {
 	},
 };
 
+struct http_response *send_data(int index, char *devmac, char *val);
+
 static GAsyncQueue *dev_queue = NULL;
 static GThread *dev_thread = NULL;
 
@@ -367,6 +369,10 @@ static void connect_device(char *bdaddr, int type)
         LOG("[Sock] S -> C: %s\n", cmd);
 
         sock_send_cmd(client_fd, CLIENT, cmd, strlen(cmd));
+
+        /* XXX: notify the server, work for bluetooth device  */
+        struct http_response *resp = send_data(type, bdaddr, "btnew");
+        http_response_free(resp);
 }
 
 static Device *find_device_by_address(GHashTable *hash_table, const char *address)
