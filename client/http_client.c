@@ -291,7 +291,7 @@ struct http_response *http_get(char *url, char *custom_headers)
 	struct http_response *hresp = http_req(http_headers, purl);
 
 	/* Handle redirect */
-        //return hresp;
+        return hresp;
 	return handle_redirect_get(hresp, custom_headers);
 }
 
