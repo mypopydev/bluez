@@ -165,7 +165,8 @@ char *str_replace(char *search , char *replace , char *subject)
 char *get_until(char *haystack, char *until)
 {
 	int offset = str_index_of(haystack, until);
-	return str_ndup(haystack, offset);
+	//??	return str_ndup(haystack, offset);
+	return strndup(haystack, offset);
 }
 
 /* decodeblock - decode 4 '6-bit' characters into 3 8-bit binary bytes */

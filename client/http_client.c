@@ -204,7 +204,8 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 	hresp->status_text = status_text;
 
 	/* Parse response headers */
-	char *headers = get_until(response, "\r\n\r\n");
+	//char *headers = get_until(response, "\r\n\r\n");
+	char *headers = strndup(response, strlen(response));
 	hresp->response_headers = headers;
 
 	/* Assign request headers */
