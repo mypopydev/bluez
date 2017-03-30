@@ -187,12 +187,13 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
         }
 
 	/* Reallocate response */
-	response = (char *)realloc(response, strlen(response) + 1);
+	response = (char *)realloc(response, strlen(response) + 100);
 
 	/* Close socket */
         close(sock);
 
 	/* Parse status code and text */
+        /*
 	char *status_line = get_until(response, "\r\n");
 	status_line = str_replace("HTTP/1.1 ", "", status_line);
 	char *status_code = str_ndup(status_line, 4);
@@ -202,11 +203,13 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 	hresp->status_code = status_code;
 	hresp->status_code_int = atoi(status_code);
 	hresp->status_text = status_text;
+        */
 
 	/* Parse response headers */
 	//char *headers = get_until(response, "\r\n\r\n");
-	char *headers = strndup(response, strlen(response));
-	hresp->response_headers = headers;
+	//char *headers = strndup(response, strlen(response));
+        /* XXX: don't handle http headers now */
+	hresp->response_headers = NULL;
 
 	/* Assign request headers */
 	hresp->request_headers = http_headers;
@@ -215,9 +218,12 @@ struct http_response *http_req(char *http_headers, struct parsed_url *purl)
 	hresp->request_uri = purl;
 
 	/* Parse body */
+        /*
 	char *body = strstr(response, "\r\n\r\n");
 	body = str_replace("\r\n\r\n", "", body);
 	hresp->body = body;
+        */
+        hresp->body = response;
 
 	/* Return response */
 	return hresp;
