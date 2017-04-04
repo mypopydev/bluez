@@ -493,7 +493,7 @@ char URL[128] = {0};
 #define URL_INTFACE "/i.ashx?"
 
 #define CONFIG_FILE "/root/bluetoothctl.cfg"
-
+//#define CONFIG_FILE "/home/barry/Project/bluez-dev/client/bluetoothctl.cfg"
 
 struct http_response *self_check()
 {
@@ -1124,10 +1124,11 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                          char *tmp = strstr(buf, "DATA");
                          if (tmp)
                                  snprintf(value, 63, "%s", tmp+5);
+                         value[strlen(value) - 1] = 0;
                          Device *dev = find_device_by_address(device_hash, address);
                          if (dev) {
                                  /* XXX: send data to server */
-                                 struct http_response *resp = send_data(dev->type, dev->address, value);
+                                 struct http_response *resp = send_data(dev->type, address, value);
                                  http_response_free(resp);
                          } else {
                                  printf("Can't find the device %s\n", address);
