@@ -1,7 +1,9 @@
 [Unit]
 Description=Gattclient service
-Wants=bluetooth.service
-After=bluetooth.target
+#Wants=bluetooth.service
+Requires=bluetooth.service
+#After=bluetooth.target
+After=bluetooth.service
 #Documentation=man:bluetoothd(8)
 #ConditionPathIsDirectory=/sys/class/bluetooth
 
