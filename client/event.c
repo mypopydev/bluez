@@ -177,6 +177,7 @@ void bt_cmd_free (CMD *event)
 #include <stdarg.h>
 #include <time.h>
 #include <sys/time.h>
+#include <syslog.h>
 
 void LOG(const char *fmt, ...)
 {
@@ -193,4 +194,9 @@ void LOG(const char *fmt, ...)
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
+
+        /* send the message to syslog */
+        va_start(args, fmt);
+        vsyslog(LOG_INFO, fmt, args);
+        va_end(args);
 }
