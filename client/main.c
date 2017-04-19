@@ -35,8 +35,8 @@
 #include <wordexp.h>
 #include <time.h>
 
-#include <readline/readline.h>
-#include <readline/history.h>
+//#include <readline/readline.h>
+//#include <readline/history.h>
 #include <glib.h>
 
 #include "src/shared/util.h"
@@ -186,19 +186,19 @@ static int create_server_sock(char *name)
         int sfd, j;
 
         if (remove(name) == -1 && errno != ENOENT)
-                g_printerr("remove unix sock data path\n");
+                LOG("remove unix sock data path\n");
 
         /* Create  socket; bind to unique pathname */
         sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
         if (sfd == -1)
-                g_printerr("create unix socket fail\n");
+                LOG("create unix socket fail\n");
 
         memset(&claddr, 0, sizeof(struct sockaddr_un));
         claddr.sun_family = AF_UNIX;
         snprintf(claddr.sun_path, sizeof(claddr.sun_path),"%s", name);
 
         if (bind(sfd, (struct sockaddr *) &claddr, sizeof(struct sockaddr_un)) == -1)
-                g_printerr("bind error\n");
+                LOG("bind error\n");
 
         return sfd;
 }
@@ -213,12 +213,12 @@ static int create_client_sock(char *name)
                  "%s.%ld", name, getpid());
 
         if (remove(path) == -1 && errno != ENOENT)
-                g_printerr("remove unix sock data path\n");
+                LOG("remove unix sock data path\n");
 
         /* Create  socket; bind to unique pathname */
         sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
         if (sfd == -1)
-                g_printerr("create unix socket fail\n");
+                LOG("create unix socket fail\n");
 
         memset(&claddr, 0, sizeof(struct sockaddr_un));
         claddr.sun_family = AF_UNIX;
@@ -242,7 +242,7 @@ int sock_send_cmd(int sock, char *client_path, char *cmd, int cmd_len)
         strncpy(svaddr.sun_path, client_path, sizeof(svaddr.sun_path) - 1);
 
         if (sendto(sock, cmd, cmd_len, 0, (struct sockaddr *) &svaddr, len) != cmd_len)
-                printf("sendto");
+                LOG("sendto");
 
         return 0;
 }
@@ -257,7 +257,7 @@ int sock_send_client_cmd(int sock, char *client_path, char *cmd, int cmd_len)
         strncpy(&svaddr.sun_path[1], client_path, sizeof(svaddr.sun_path) - 2);
 
         if (sendto(sock, cmd, cmd_len, 0, (struct sockaddr *) &svaddr, len) != cmd_len)
-                printf("sendto client error");
+                LOG("sendto client error");
 
         return 0;
 }
@@ -266,7 +266,7 @@ void print_key_value(gpointer key, gpointer value, gpointer user_data)
 {
 	LOG("%s \n", key);
 	Device *dev = value;
-	printf("    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d pid: %d\n" ,
+	LOG("    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d pid: %d\n" ,
 	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type, dev->pid);
 }
 
@@ -390,7 +390,7 @@ gboolean match_device_name(gpointer key, gpointer value, gpointer user_data)
         return  match(name, (char *)device->name);
 }
 
-static Device *find_device_by_name(GHashTable *hash_table, const char *name)
+static int find_device_by_name(GHashTable *hash_table, const char *name)
 {
         /*
         GHashTableIter iter;
@@ -445,7 +445,7 @@ void reconn_device(gpointer key, gpointer value, gpointer user_data)
                 }
             */
         }
-	printf("\n    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d pid: %d\n" ,
+	LOG("\n    %s %s \n    paired: %d trusted: %d blocked: %d connected: %d type: %d pid: %d\n" ,
 	       dev->address, dev->name, dev->paired, dev->trusted, dev->blocked, dev->connected, dev->type, dev->pid);
 }
 
@@ -494,6 +494,7 @@ char URL[128] = {0};
 
 #define CONFIG_FILE "/root/bluetoothctl.cfg"
 //#define CONFIG_FILE "/home/barry/Project/bluez-dev/client/bluetoothctl.cfg"
+//#define CONFIG_FILE  "/home/pi/Project/bluez-dev/client/bluetoothctl.cfg"
 
 struct http_response *self_check()
 {
@@ -509,7 +510,7 @@ struct http_response *self_check()
 	/* print the timestamp */
 	gettimeofday(&tv, NULL);
 	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
-	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+	LOG("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
 
         snprintf(cmd, 127, "{t=%s;}", date);
         enc = g_base64_encode(cmd, strlen(cmd));
@@ -517,8 +518,8 @@ struct http_response *self_check()
         http_resp = http_get(url, NULL);
         g_free(enc);
         if (http_resp) {
-                printf("header %s\n", http_resp->request_headers);
-                printf("body %s\n", http_resp->body);
+                LOG("header %s\n", http_resp->request_headers);
+                LOG("body %s\n", http_resp->body);
         }
         return http_resp;
 }
@@ -537,17 +538,18 @@ struct http_response *send_data(int index, char *devmac, char *val)
 	/* print the timestamp */
 	gettimeofday(&tv, NULL);
 	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
-	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+	LOG("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
 
         /* n(int),e(String),t(Long),d(String);n,e,t,d */
         snprintf(cmd, 127, "{n=%d,e=%s,t=%s,d=%s;}", index, devmac, date, val);
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=02&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
+        LOG("URL %s\n", url);
         g_free(enc);
         if (http_resp) {
-                printf("header %s\n", http_resp->request_headers);
-                printf("body %s\n", http_resp->body);
+                LOG("header %s\n", http_resp->request_headers);
+                LOG("body %s\n", http_resp->body);
         }
 
         return http_resp;
@@ -567,7 +569,7 @@ struct http_response *close_device()
 	/* print the timestamp */
 	gettimeofday(&tv, NULL);
 	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
-	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+	LOG("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
 
         snprintf(cmd, 127, "{t=%s;}", date);
         enc = g_base64_encode(cmd, strlen(cmd));
@@ -575,8 +577,8 @@ struct http_response *close_device()
         http_resp = http_get(url, NULL);
         g_free(enc);
         if (http_resp) {
-                printf("header %s\n", http_resp->request_headers);
-                printf("body %s\n", http_resp->body);
+                LOG("header %s\n", http_resp->request_headers);
+                LOG("body %s\n", http_resp->body);
         }
 
         return http_resp;
@@ -596,8 +598,8 @@ struct http_response *init_device(int inited)
         http_resp = http_get(url, NULL);
         g_free(enc);
         if (http_resp) {
-                printf("header %s\n", http_resp->request_headers);
-                printf("body %s\n", http_resp->body);
+                LOG("header %s\n", http_resp->request_headers);
+                LOG("body %s\n", http_resp->body);
         }
 
         return http_resp;
@@ -617,7 +619,7 @@ struct http_response *fail_device(int index, char *devmac, char *reason)
 	/* print the timestamp */
 	gettimeofday(&tv, NULL);
 	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
-	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+	LOG("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
 
         snprintf(cmd, 127, "{n=%d,e=%s,t=%s,f=%s;}", index, devmac, date, reason); /* n(int),e(String),t(Long),f(String);n,e,t,f */
         enc = g_base64_encode(cmd, strlen(cmd));
@@ -625,8 +627,8 @@ struct http_response *fail_device(int index, char *devmac, char *reason)
         http_resp = http_get(url, NULL);
         g_free(enc);
         if (http_resp) {
-                printf("header %s\n", http_resp->request_headers);
-                printf("body %s\n", http_resp->body);
+                LOG("header %s\n", http_resp->request_headers);
+                LOG("body %s\n", http_resp->body);
         }
 
         return http_resp;
@@ -646,7 +648,7 @@ struct http_response *version_check(char *devmac, char *reason)
 	/* print the timestamp */
 	gettimeofday(&tv, NULL);
 	strftime(date, NELEMS(date), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
-	printf("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
+	LOG("[%s.%03dZ] ", date, (int)tv.tv_usec/1000);
 
         snprintf(cmd, 127, "{e=%s,t=%s,n=%s;}", devmac, date, reason); /* e(String),t(Long),n(String);e,t,n */
         enc = g_base64_encode(cmd, strlen(cmd));
@@ -654,8 +656,8 @@ struct http_response *version_check(char *devmac, char *reason)
         http_resp = http_get(url, NULL);
         g_free(enc);
         if (http_resp) {
-                printf("header %s\n", http_resp->request_headers);
-                printf("body %s\n", http_resp->body);
+                LOG("header %s\n", http_resp->request_headers);
+                LOG("body %s\n", http_resp->body);
         }
 
         return http_resp;
@@ -677,8 +679,8 @@ struct http_response *update_fw(char *devmac, char *reason)
         g_free(enc);
 
         if (http_resp) {
-                printf("header %s\n", http_resp->request_headers);
-                printf("body %s\n", http_resp->body);
+                LOG("header %s\n", http_resp->request_headers);
+                LOG("body %s\n", http_resp->body);
         }
 
         return http_resp;
@@ -694,8 +696,20 @@ static gpointer state_handle(gpointer data)
         char *address = NULL;
         enum BTTYPE dev_type = TYPE_NONE;
         struct http_response *http_resp = NULL;
+        int len = 0;
+
 
         while (event = g_async_queue_pop (async_queue)) {
+#if 0
+        for (;;) {
+        retry:
+                len = g_async_queue_length (async_queue);
+                if (len <= 0) {
+                        usleep(500000);
+                        goto retry;
+                }
+                event = g_async_queue_pop (async_queue);
+#endif
                 switch (event->event_type) {
                 case BT_EVENT_CLIENT_READY:
                         power_on();
@@ -708,12 +722,13 @@ static gpointer state_handle(gpointer data)
                         break;
 
                 case BT_EVENT_DEVICE_OLD:
+                        LOG(" <<<<<< OLD >>>>>>\n");
                         dev = event->payload;
                         dev_type = find_bt_type(dev->name,
                                                 strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
-                        if (dev_type != TYPE_NONE && find_device_by_name(device_hash, dev->name)) {
+                        if ((dev_type != TYPE_NONE) && find_device_by_name(device_hash, dev->name)) {
                                 /* XXX: find this device in hash table */
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
@@ -745,6 +760,7 @@ static gpointer state_handle(gpointer data)
                         break;
 
                 case BT_EVENT_DEVICE_NEW:
+                        LOG(" <<<<<< NEW >>>>>>\n");
                         dev = event->payload;
                         dev_type = find_bt_type(dev->name,
                                                 strlen(dev->name),
@@ -781,6 +797,7 @@ static gpointer state_handle(gpointer data)
                         break;
 
                 case BT_EVENT_DEVICE_DEL:
+                        LOG(" <<<<<< DEL >>>>>>\n");
                         dev = event->payload;
                         g_hash_table_remove(device_hash,
                                             dev->address);
@@ -791,6 +808,7 @@ static gpointer state_handle(gpointer data)
 
                 case BT_EVENT_DEVICE_CHG:
                         /* Update the device status ? */
+                        LOG(" <<<<<< CHG >>>>>>\n");
                         dev = event->payload;
                         dev_type = find_bt_type(dev->name,
                                                 strlen(dev->name),
@@ -837,6 +855,7 @@ static gpointer state_handle(gpointer data)
                 case BT_EVENT_DEVICE_CONN:
                         /* device connected, update hash table, try to read the value and
                            send the result to server */
+                        LOG(" <<<<<< CONN >>>>>>\n");
                         dev = event->payload;
                         device = g_hash_table_lookup(device_hash, dev->address);
                         if (device) {
@@ -918,6 +937,7 @@ static gpointer state_handle(gpointer data)
 
                 case BT_EVENT_DEVICE_DISCONN:
                         /* Update the device connect status */
+                        LOG(" <<<<<< DISCONN >>>>>>\n");
                         dev = event->payload;
                         device = g_hash_table_lookup(device_hash, dev->address);
                         if (device) {
@@ -943,6 +963,7 @@ static gpointer state_handle(gpointer data)
 
                 case BT_EVENT_DEVICE_PID_CREATE:
                         /* Update the process status */
+                        LOG(" <<<<<< PROCESS >>>>>>\n");
                         dev = event->payload;
                         device = g_hash_table_lookup(device_hash, dev->address);
                         if (device) {
@@ -967,6 +988,7 @@ static gpointer state_handle(gpointer data)
 
                 case BT_EVENT_DEVICE_PID_CLOSE:
                         /* Update the process/connect status */
+                        LOG(" <<<<<< CLOSE >>>>>>\n");
                         dev = event->payload;
                         device = find_device_by_pid(device_hash, &dev->pid);
                         if (device) {
@@ -1009,7 +1031,7 @@ recurser_start (gpointer data)
 
 static void proxy_leak(gpointer data)
 {
-	printf("Leaking proxy %p\n", data);
+	LOG("Leaking proxy %p\n", data);
 }
 
 static gboolean input_handler(GIOChannel *channel, GIOCondition condition,
@@ -1046,10 +1068,12 @@ static guint setup_standard_input(void)
 
 static void connect_handler(DBusConnection *connection, void *user_data)
 {
+    /*
 	rl_set_prompt(PROMPT_ON);
 	printf("\r");
 	rl_on_new_line();
 	rl_redisplay();
+    */
 
         //bt_client_ready(async_queue);
 }
@@ -1060,11 +1084,12 @@ static void disconnect_handler(DBusConnection *connection, void *user_data)
 		g_source_remove(input);
 		input = 0;
 	}
-
+/*
 	rl_set_prompt(PROMPT_OFF);
 	printf("\r");
 	rl_on_new_line();
 	rl_redisplay();
+*/
 
 	g_list_free_full(ctrl_list, proxy_leak);
 	ctrl_list = NULL;
@@ -1084,17 +1109,20 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                  len = sizeof(struct sockaddr_un);
                  numBytes = recvfrom(server_fd, buf, 128, 0,
                                      (struct sockaddr *) &claddr, &len);
-                 if (numBytes == -1)
-                         printf("recvfrom");
+                 if (numBytes == -1) {
+                         LOG("recvfrom erron in server handler.\n");
+                         usleep(500000);
+                         return TRUE;
+                 }
 
-                 printf("Server received %ld bytes from %s\n", (long) numBytes,
+                 LOG("Server received %ld bytes from %s\n", (long) numBytes,
                         claddr.sun_path);
 
                  /*
                  for (j = 0; j < numBytes; j++)
                          buf[j] = toupper((unsigned char) buf[j]);
                  */
-                 printf(" C-> S : %s\n", buf);
+                 LOG(" C-> S : %s\n", buf);
 
                  if (match("CONNECT", buf)) {
                          Device *dev = g_slice_new0(Device);
@@ -1116,6 +1144,7 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                          Device *dev = g_slice_new0(Device);
                          //snprintf(dev->address, sizeof(dev->address), "%s", buf);
                          dev->pid = atoi(buf+8);
+                         LOG("Destory pid : %d\n", dev->pid);
                          bt_device_process_close(async_queue, dev);
                  } else if (match("DATA", buf)) {
                          char address[18] = {0};
@@ -1168,7 +1197,7 @@ static void print_adapter(GDBusProxy *proxy, const char *description)
 	else
 		name = "<unknown>";
 
-	rl_printf("%s%s%sController %s %s %s\n",
+	LOG("%s%s%sController %s %s %s\n",
 				description ? "[" : "",
 				description ? : "",
 				description ? "] " : "",
@@ -1196,7 +1225,7 @@ static void print_device(GDBusProxy *proxy, const char *description)
 	else
 		name = "<unknown>";
 
-	rl_printf("%s%s%sDevice %s %s\n",
+	LOG("%s%s%sDevice %s %s\n",
 				description ? "[" : "",
 				description ? : "",
 				description ? "] " : "",
@@ -1228,7 +1257,7 @@ static void print_iter(const char *label, const char *name,
 	char *entry;
         LOG("%s/%s\n", label, name);
 	if (iter == NULL) {
-		rl_printf("%s%s is nil\n", label, name);
+		LOG("%s%s is nil\n", label, name);
 		return;
 	}
 
@@ -1240,16 +1269,16 @@ static void print_iter(const char *label, const char *name,
 
 	switch (dbus_message_iter_get_arg_type(iter)) {
 	case DBUS_TYPE_INVALID:
-		rl_printf("%s%s is invalid\n", label, name);
+		LOG("%s%s is invalid\n", label, name);
 		break;
 	case DBUS_TYPE_STRING:
 	case DBUS_TYPE_OBJECT_PATH:
 		dbus_message_iter_get_basic(iter, &valstr);
-		rl_printf("%s%s: %s\n", label, name, valstr);
+		LOG("%s%s: %s\n", label, name, valstr);
 		break;
 	case DBUS_TYPE_BOOLEAN:
 		dbus_message_iter_get_basic(iter, &valbool);
-		rl_printf("%s %s: %s\n", label, name,
+		LOG("%s %s: %s\n", label, name,
 					valbool == TRUE ? "yes" : "no");
                 if (match((char *)"Connected", (char *)name) && match((char *)"Device", (char *)label)) {
                         Device *dev = g_slice_new0(Device);
@@ -1262,23 +1291,23 @@ static void print_iter(const char *label, const char *name,
                                 bt_device_disconn(async_queue, dev);
                         }
                 }
-                rl_printf("%s%s is XXX\n", label, name);
+                LOG("%s %s is XXX\n", label, name);
 		break;
 	case DBUS_TYPE_UINT32:
 		dbus_message_iter_get_basic(iter, &valu32);
-		rl_printf("%s%s: 0x%06x\n", label, name, valu32);
+		LOG("%s%s: 0x%06x\n", label, name, valu32);
 		break;
 	case DBUS_TYPE_UINT16:
 		dbus_message_iter_get_basic(iter, &valu16);
-		rl_printf("%s%s: 0x%04x\n", label, name, valu16);
+		LOG("%s%s: 0x%04x\n", label, name, valu16);
 		break;
 	case DBUS_TYPE_INT16:
 		dbus_message_iter_get_basic(iter, &vals16);
-		rl_printf("%s%s: %d\n", label, name, vals16);
+		LOG("%s%s: %d\n", label, name, vals16);
 		break;
 	case DBUS_TYPE_BYTE:
 		dbus_message_iter_get_basic(iter, &byte);
-		rl_printf("%s%s: 0x%02x\n", label, name, byte);
+		LOG("%s%s: 0x%02x\n", label, name, byte);
 		break;
 	case DBUS_TYPE_VARIANT:
 		dbus_message_iter_recurse(iter, &subiter);
@@ -1304,7 +1333,7 @@ static void print_iter(const char *label, const char *name,
 		g_free(entry);
 		break;
 	default:
-		rl_printf("%s%s has unsupported type\n", label, name);
+		LOG("%s%s has unsupported type\n", label, name);
 		break;
 	}
 }
@@ -1350,10 +1379,10 @@ static void print_uuids(GDBusProxy *proxy)
 				n = sizeof(str) - 1;
 			}
 
-			rl_printf("\tUUID: %s%*c(%s)\n",
+			LOG("\tUUID: %s%*c(%s)\n",
 						str, 26 - n, ' ', uuid);
 		} else
-			rl_printf("\tUUID: %*c(%s)\n", 26, ' ', uuid);
+			LOG("\tUUID: %*c(%s)\n", 26, ' ', uuid);
 
 		dbus_message_iter_next(&value);
 	}
@@ -1444,9 +1473,9 @@ static void set_default_device(GDBusProxy *proxy, const char *attribute)
 				attribute ? attribute + strlen(path) : "");
 
 done:
-	rl_set_prompt(desc ? desc : PROMPT_ON);
+	//rl_set_prompt(desc ? desc : PROMPT_ON);
 	printf("\r");
-	rl_on_new_line();
+	//rl_on_new_line();
 	g_free(desc);
 }
 
@@ -1688,7 +1717,7 @@ static void property_changed(GDBusProxy *proxy, const char *name,
 static void message_handler(DBusConnection *connection,
 					DBusMessage *message, void *user_data)
 {
-	rl_printf("[SIGNAL] %s.%s\n", dbus_message_get_interface(message),
+	LOG("[SIGNAL] %s.%s\n", dbus_message_get_interface(message),
 					dbus_message_get_member(message));
 }
 
@@ -1738,7 +1767,7 @@ static GDBusProxy *find_proxy_by_address(GList *source, const char *address)
 static gboolean check_default_ctrl(void)
 {
 	if (!default_ctrl) {
-		rl_printf("No default controller available\n");
+		LOG("No default controller available\n");
 		return FALSE;
 	}
 
@@ -1748,7 +1777,7 @@ static gboolean check_default_ctrl(void)
 static gboolean parse_argument_on_off(const char *arg, dbus_bool_t *value)
 {
 	if (!arg || !strlen(arg)) {
-		rl_printf("Missing on/off argument\n");
+		LOG("Missing on/off argument\n");
 		return FALSE;
 	}
 
@@ -1762,7 +1791,7 @@ static gboolean parse_argument_on_off(const char *arg, dbus_bool_t *value)
 		return TRUE;
 	}
 
-	rl_printf("Invalid argument %s\n", arg);
+	LOG("Invalid argument %s\n", arg);
 	return FALSE;
 }
 
@@ -1772,7 +1801,7 @@ static gboolean parse_argument_agent(const char *arg, dbus_bool_t *value,
 	const char * const *opt;
 
 	if (arg == NULL || strlen(arg) == 0) {
-		rl_printf("Missing on/off/capability argument\n");
+		LOG("Missing on/off/capability argument\n");
 		return FALSE;
 	}
 
@@ -1795,7 +1824,7 @@ static gboolean parse_argument_agent(const char *arg, dbus_bool_t *value,
 		}
 	}
 
-	rl_printf("Invalid argument %s\n", arg);
+	LOG("Invalid argument %s\n", arg);
 	return FALSE;
 }
 
@@ -1824,7 +1853,7 @@ static void cmd_show(const char *arg)
 	} else {
 		adapter = find_ctrl_by_address(ctrl_list, arg);
 		if (!adapter) {
-			rl_printf("Controller %s not available\n", arg);
+			LOG("Controller %s not available\n", arg);
 			return;
 		}
 		proxy = adapter->proxy;
@@ -1834,7 +1863,7 @@ static void cmd_show(const char *arg)
 		return;
 
 	dbus_message_iter_get_basic(&iter, &address);
-	rl_printf("Controller %s\n", address);
+	LOG("Controller %s\n", address);
 
 	print_property(proxy, "Name");
 	print_property(proxy, "Alias");
@@ -1852,13 +1881,13 @@ static void cmd_select(const char *arg)
 	struct adapter *adapter;
 
 	if (!arg || !strlen(arg)) {
-		rl_printf("Missing controller address argument\n");
+		LOG("Missing controller address argument\n");
 		return;
 	}
 
 	adapter = find_ctrl_by_address(ctrl_list, arg);
 	if (!adapter) {
-		rl_printf("Controller %s not available\n", arg);
+		LOG("Controller %s not available\n", arg);
 		return;
 	}
 
@@ -1912,9 +1941,9 @@ static void generic_callback(const DBusError *error, void *user_data)
 	char *str = user_data;
 
 	if (dbus_error_is_set(error))
-		rl_printf("Failed to set %s: %s\n", str, error->name);
+		LOG("Failed to set %s: %s\n", str, error->name);
 	else
-		rl_printf("Changing %s succeeded\n", str);
+		LOG("Changing %s succeeded\n", str);
 }
 
 static void cmd_system_alias(const char *arg)
@@ -1922,7 +1951,7 @@ static void cmd_system_alias(const char *arg)
 	char *name;
 
 	if (!arg || !strlen(arg)) {
-		rl_printf("Missing name argument\n");
+		LOG("Missing name argument\n");
 		return;
 	}
 
@@ -1961,11 +1990,15 @@ static void cmd_power(const char *arg)
 	dbus_bool_t powered;
 	char *str;
 
-	if (parse_argument_on_off(arg, &powered) == FALSE)
+	if (parse_argument_on_off(arg, &powered) == FALSE) {
+                LOG("power %s fail ========\n", arg);
 		return;
+        }
 
-	if (check_default_ctrl() == FALSE)
+	if (check_default_ctrl() == FALSE) {
+                LOG("power %s fail++++++++++\n", arg);
 		return;
+        }
 
 	str = g_strdup_printf("power %s", powered == TRUE ? "on" : "off");
 
@@ -2036,7 +2069,7 @@ static void cmd_agent(const char *arg)
 			agent_register(dbus_conn, agent_manager,
 						auto_register_agent);
 		else
-			rl_printf("Agent registration enabled\n");
+			LOG("Agent registration enabled\n");
 	} else {
 		g_free(auto_register_agent);
 		auto_register_agent = NULL;
@@ -2044,7 +2077,7 @@ static void cmd_agent(const char *arg)
 		if (agent_manager)
 			agent_unregister(dbus_conn, agent_manager);
 		else
-			rl_printf("Agent registration disabled\n");
+			LOG("Agent registration disabled\n");
 	}
 }
 
@@ -2061,13 +2094,13 @@ static void start_discovery_reply(DBusMessage *message, void *user_data)
 	dbus_error_init(&error);
 
 	if (dbus_set_error_from_message(&error, message) == TRUE) {
-		rl_printf("Failed to %s discovery: %s\n",
+		LOG("Failed to %s discovery: %s\n",
 				enable == TRUE ? "start" : "stop", error.name);
 		dbus_error_free(&error);
 		return;
 	}
 
-	rl_printf("Discovery %s\n", enable == TRUE ? "started" : "stopped");
+	LOG("Discovery %s\n", enable == TRUE ? "started" : "stopped");
 }
 
 static void cmd_scan(const char *arg)
@@ -2089,7 +2122,7 @@ static void cmd_scan(const char *arg)
 	if (g_dbus_proxy_method_call(default_ctrl->proxy, method,
 				NULL, start_discovery_reply,
 				GUINT_TO_POINTER(enable), NULL) == FALSE) {
-		rl_printf("Failed to %s discovery\n",
+		LOG("Failed to %s discovery\n",
 					enable == TRUE ? "start" : "stop");
 		return;
 	}
@@ -2227,12 +2260,12 @@ static void set_discovery_filter_reply(DBusMessage *message, void *user_data)
 
 	dbus_error_init(&error);
 	if (dbus_set_error_from_message(&error, message) == TRUE) {
-		rl_printf("SetDiscoveryFilter failed: %s\n", error.name);
+		LOG("SetDiscoveryFilter failed: %s\n", error.name);
 		dbus_error_free(&error);
 		return;
 	}
 
-	rl_printf("SetDiscoveryFilter success\n");
+	LOG("SetDiscoveryFilter success\n");
 }
 
 static gint filtered_scan_rssi = DISTANCE_VAL_INVALID;
@@ -2258,7 +2291,7 @@ static void cmd_set_scan_filter_commit(void)
 	if (g_dbus_proxy_method_call(default_ctrl->proxy, "SetDiscoveryFilter",
 		set_discovery_filter_setup, set_discovery_filter_reply,
 		&args, NULL) == FALSE) {
-		rl_printf("Failed to set discovery filter\n");
+		LOG("Failed to set discovery filter\n");
 		return;
 	}
 }
@@ -2274,7 +2307,7 @@ static void cmd_set_scan_filter_uuids(const char *arg)
 
 	filtered_scan_uuids = g_strsplit(arg, " ", -1);
 	if (!filtered_scan_uuids) {
-		rl_printf("Failed to parse input\n");
+		LOG("Failed to parse input\n");
 		return;
 	}
 
@@ -2350,7 +2383,7 @@ static void cmd_set_scan_filter_clear(const char *arg)
 	if (g_dbus_proxy_method_call(default_ctrl->proxy, "SetDiscoveryFilter",
 		clear_discovery_filter_setup, set_discovery_filter_reply,
 		NULL, NULL) == FALSE) {
-		rl_printf("Failed to clear discovery filter\n");
+		LOG("Failed to clear discovery filter\n");
 	}
 }
 
@@ -2361,7 +2394,7 @@ static struct GDBusProxy *find_device(const char *arg)
 	if (!arg || !strlen(arg)) {
 		if (default_dev)
 			return default_dev;
-		rl_printf("Missing device address argument\n");
+		LOG("Missing device address argument\n");
 		return NULL;
 	}
 
@@ -2370,7 +2403,7 @@ static struct GDBusProxy *find_device(const char *arg)
 
 	proxy = find_proxy_by_address(default_ctrl->devices, arg);
 	if (!proxy) {
-		rl_printf("Device %s not available\n", arg);
+		LOG("Device %s not available\n", arg);
 		return NULL;
 	}
 
@@ -2391,7 +2424,7 @@ static void cmd_info(const char *arg)
 		return;
 
 	dbus_message_iter_get_basic(&iter, &address);
-	rl_printf("Device %s\n", address);
+	LOG("Device %s\n", address);
 
 	print_property(proxy, "Name");
 	print_property(proxy, "Alias");
@@ -2418,12 +2451,12 @@ static void pair_reply(DBusMessage *message, void *user_data)
 	dbus_error_init(&error);
 
 	if (dbus_set_error_from_message(&error, message) == TRUE) {
-		rl_printf("Failed to pair: %s\n", error.name);
+		LOG("Failed to pair: %s\n", error.name);
 		dbus_error_free(&error);
 		return;
 	}
 
-	rl_printf("Pairing successful\n");
+	LOG("Pairing successful\n");
 }
 
 static void cmd_pair(const char *arg)
@@ -2436,11 +2469,11 @@ static void cmd_pair(const char *arg)
 
 	if (g_dbus_proxy_method_call(proxy, "Pair", NULL, pair_reply,
 							NULL, NULL) == FALSE) {
-		rl_printf("Failed to pair\n");
+		LOG("Failed to pair\n");
 		return;
 	}
 
-	rl_printf("Attempting to pair with %s\n", arg);
+	LOG("Attempting to pair with %s\n", arg);
 }
 
 static void cmd_trust(const char *arg)
@@ -2538,12 +2571,12 @@ static void remove_device_reply(DBusMessage *message, void *user_data)
 	dbus_error_init(&error);
 
 	if (dbus_set_error_from_message(&error, message) == TRUE) {
-		rl_printf("Failed to remove device: %s\n", error.name);
+		LOG("Failed to remove device: %s\n", error.name);
 		dbus_error_free(&error);
 		return;
 	}
 
-	rl_printf("Device has been removed\n");
+	LOG("Device has been removed\n");
 }
 
 static void remove_device_setup(DBusMessageIter *iter, void *user_data)
@@ -2566,7 +2599,7 @@ static void remove_device(GDBusProxy *proxy)
 						remove_device_setup,
 						remove_device_reply,
 						path, g_free) == FALSE) {
-		rl_printf("Failed to remove device\n");
+		LOG("Failed to remove device\n");
 		g_free(path);
 	}
 }
@@ -2576,7 +2609,7 @@ static void cmd_remove(const char *arg)
 	GDBusProxy *proxy;
 
 	if (!arg || !strlen(arg)) {
-		rl_printf("Missing device address argument\n");
+		LOG("Missing device address argument\n");
 		return;
 	}
 
@@ -2597,7 +2630,7 @@ static void cmd_remove(const char *arg)
 
 	proxy = find_proxy_by_address(default_ctrl->devices, arg);
 	if (!proxy) {
-		rl_printf("Device %s not available\n", arg);
+		LOG("Device %s not available\n", arg);
 		return;
 	}
 
@@ -2625,7 +2658,7 @@ static void connect_reply(DBusMessage *message, void *user_data)
 		name = "<unknown>";
 
 	if (dbus_set_error_from_message(&error, message) == TRUE) {
-		rl_printf("Failed to connect: %s [%s %s]\n", error.name, address, name);
+		LOG("Failed to connect: %s [%s %s]\n", error.name, address, name);
 		dbus_error_free(&error);
 
                 Device *dev = g_slice_new0(Device);
@@ -2636,13 +2669,13 @@ static void connect_reply(DBusMessage *message, void *user_data)
                 return;
 	}
 
-	rl_printf("%s%s%sDevice %s %s Connection successful\n",
+	LOG("%s%s%sDevice %s %s Connection successful\n",
 				NULL ? "[" : "",
 				NULL ? : "",
 				NULL ? "] " : "",
 				address, name);
 
-	//rl_printf("Connection successful\n");
+	//LOG("Connection successful\n");
         // FIXME
         Device *dev = g_slice_new0(Device);
         snprintf(dev->name, sizeof(dev->name), "%s", name);
@@ -2658,7 +2691,7 @@ static void cmd_connect(const char *arg)
 	GDBusProxy *proxy;
 
 	if (!arg || !strlen(arg)) {
-		rl_printf("Missing device address argument\n");
+		LOG("Missing device address argument\n");
 		return;
 	}
 
@@ -2667,17 +2700,17 @@ static void cmd_connect(const char *arg)
 
 	proxy = find_proxy_by_address(default_ctrl->devices, arg);
 	if (!proxy) {
-		rl_printf("Device %s not available\n", arg);
+		LOG("Device %s not available\n", arg);
 		return;
 	}
 
 	if (g_dbus_proxy_method_call(proxy, "Connect", NULL, connect_reply,
 							proxy, NULL) == FALSE) {
-		rl_printf("Failed to connect\n");
+		LOG("Failed to connect\n");
 		return;
 	}
 
-	rl_printf("Attempting to connect to %s\n", arg);
+	LOG("Attempting to connect to %s\n", arg);
 }
 
 static void disconn_reply(DBusMessage *message, void *user_data)
@@ -2688,12 +2721,12 @@ static void disconn_reply(DBusMessage *message, void *user_data)
 	dbus_error_init(&error);
 
 	if (dbus_set_error_from_message(&error, message) == TRUE) {
-		rl_printf("Failed to disconnect: %s\n", error.name);
+		LOG("Failed to disconnect: %s\n", error.name);
 		dbus_error_free(&error);
 		return;
 	}
 
-	rl_printf("Successful disconnected\n");
+	LOG("Successful disconnected\n");
 
 	if (proxy != default_dev)
 		return;
@@ -2711,7 +2744,7 @@ static void cmd_disconn(const char *arg)
 
 	if (g_dbus_proxy_method_call(proxy, "Disconnect", NULL, disconn_reply,
 							proxy, NULL) == FALSE) {
-		rl_printf("Failed to disconnect\n");
+		LOG("Failed to disconnect\n");
 		return;
 	}
 	if (strlen(arg) == 0) {
@@ -2720,7 +2753,7 @@ static void cmd_disconn(const char *arg)
 		if (g_dbus_proxy_get_property(proxy, "Address", &iter) == TRUE)
 			dbus_message_iter_get_basic(&iter, &arg);
 	}
-	rl_printf("Attempting to disconnect from %s\n", arg);
+	LOG("Attempting to disconnect from %s\n", arg);
 }
 
 static void cmd_list_attributes(const char *arg)
@@ -2739,12 +2772,12 @@ static void cmd_set_alias(const char *arg)
 	char *name;
 
 	if (!arg || !strlen(arg)) {
-		rl_printf("Missing name argument\n");
+		LOG("Missing name argument\n");
 		return;
 	}
 
 	if (!default_dev) {
-		rl_printf("No device connected\n");
+		LOG("No device connected\n");
 		return;
 	}
 
@@ -2763,12 +2796,12 @@ static void cmd_select_attribute(const char *arg)
 	GDBusProxy *proxy;
 
 	if (!arg || !strlen(arg)) {
-		rl_printf("Missing attribute argument\n");
+		LOG("Missing attribute argument\n");
 		return;
 	}
 
 	if (!default_dev) {
-		rl_printf("No device connected\n");
+		LOG("No device connected\n");
 		return;
 	}
 
@@ -2784,13 +2817,13 @@ static struct GDBusProxy *find_attribute(const char *arg)
 	if (!arg || !strlen(arg)) {
 		if (default_attr)
 			return default_attr;
-		rl_printf("Missing attribute argument\n");
+		LOG("Missing attribute argument\n");
 		return NULL;
 	}
 
 	proxy = gatt_select_attribute(arg);
 	if (!proxy) {
-		rl_printf("Attribute %s not available\n", arg);
+		LOG("Attribute %s not available\n", arg);
 		return NULL;
 	}
 
@@ -2818,14 +2851,14 @@ static void cmd_attribute_info(const char *arg)
 
 	iface = g_dbus_proxy_get_interface(proxy);
 	if (!strcmp(iface, "org.bluez.GattService1")) {
-		rl_printf("Service - %s\n", text);
+		LOG("Service - %s\n", text);
 
 		print_property(proxy, "UUID");
 		print_property(proxy, "Primary");
 		print_property(proxy, "Characteristics");
 		print_property(proxy, "Includes");
 	} else if (!strcmp(iface, "org.bluez.GattCharacteristic1")) {
-		rl_printf("Characteristic - %s\n", text);
+		LOG("Characteristic - %s\n", text);
 
 		print_property(proxy, "UUID");
 		print_property(proxy, "Service");
@@ -2834,7 +2867,7 @@ static void cmd_attribute_info(const char *arg)
 		print_property(proxy, "Flags");
 		print_property(proxy, "Descriptors");
 	} else if (!strcmp(iface, "org.bluez.GattDescriptor1")) {
-		rl_printf("Descriptor - %s\n", text);
+		LOG("Descriptor - %s\n", text);
 
 		print_property(proxy, "UUID");
 		print_property(proxy, "Characteristic");
@@ -2845,7 +2878,7 @@ static void cmd_attribute_info(const char *arg)
 static void cmd_read(const char *arg)
 {
 	if (!default_attr) {
-		rl_printf("No attribute selected\n");
+		LOG("No attribute selected\n");
 		return;
 	}
 
@@ -2855,12 +2888,12 @@ static void cmd_read(const char *arg)
 static void cmd_write(const char *arg)
 {
 	if (!arg || !strlen(arg)) {
-		rl_printf("Missing data argument\n");
+		LOG("Missing data argument\n");
 		return;
 	}
 
 	if (!default_attr) {
-		rl_printf("No attribute selected\n");
+		LOG("No attribute selected\n");
 		return;
 	}
 
@@ -2875,7 +2908,7 @@ static void cmd_notify(const char *arg)
 		return;
 
 	if (!default_attr) {
-		rl_printf("No attribute selected\n");
+		LOG("No attribute selected\n");
 		return;
 	}
 
@@ -2890,12 +2923,12 @@ static void cmd_register_profile(const char *arg)
 		return;
 
 	if (wordexp(arg, &w, WRDE_NOCMD)) {
-		rl_printf("Invalid argument\n");
+		LOG("Invalid argument\n");
 		return;
 	}
 
 	if (w.we_wordc == 0) {
-		rl_printf("Missing argument\n");
+		LOG("Missing argument\n");
 		return;
 	}
 
@@ -2914,7 +2947,7 @@ static void cmd_unregister_profile(const char *arg)
 
 static void cmd_version(const char *arg)
 {
-	rl_printf("Version %s\n", VERSION);
+	LOG("Version %s\n", VERSION);
 }
 
 static void cmd_quit(const char *arg)
@@ -3022,7 +3055,7 @@ static gboolean parse_argument_advertise(const char *arg, dbus_bool_t *value,
 	const char * const *opt;
 
 	if (arg == NULL || strlen(arg) == 0) {
-		rl_printf("Missing on/off/type argument\n");
+		LOG("Missing on/off/type argument\n");
 		return FALSE;
 	}
 
@@ -3045,7 +3078,7 @@ static gboolean parse_argument_advertise(const char *arg, dbus_bool_t *value,
 		}
 	}
 
-	rl_printf("Invalid argument %s\n", arg);
+	LOG("Invalid argument %s\n", arg);
 	return FALSE;
 }
 
@@ -3058,7 +3091,7 @@ static void cmd_advertise(const char *arg)
 		return;
 
 	if (!ad_manager) {
-		rl_printf("LEAdvertisingManager not found\n");
+		LOG("LEAdvertisingManager not found\n");
 		return;
 	}
 
@@ -3106,7 +3139,7 @@ static void cmd_set_advertise_manufacturer(const char *arg)
 static void cmd_set_advertise_tx_power(const char *arg)
 {
 	if (arg == NULL || strlen(arg) == 0) {
-		rl_printf("Missing on/off argument\n");
+		LOG("Missing on/off argument\n");
 		return;
 	}
 
@@ -3120,7 +3153,7 @@ static void cmd_set_advertise_tx_power(const char *arg)
 		return;
 	}
 
-	rl_printf("Invalid argument\n");
+	LOG("Invalid argument\n");
 }
 
 static const struct {
@@ -3237,6 +3270,7 @@ static char *cmd_generator(const char *text, int state)
 	return NULL;
 }
 
+#if 0
 static char **cmd_completion(const char *text, int start, int end)
 {
 	char **matches = NULL;
@@ -3271,7 +3305,9 @@ static char **cmd_completion(const char *text, int start, int end)
 
 	return matches;
 }
+#endif
 
+#if 0
 static void rl_handler(char *input)
 {
 	char *cmd, *arg;
@@ -3331,13 +3367,27 @@ static void rl_handler(char *input)
 done:
 	free(input);
 }
+#endif
 
 static gpointer cmd_handle(gpointer data)
 {
         GAsyncQueue *cmd_queue = data;
         CMD *event = NULL;
+        int len = 0;
+
 
         while (event = g_async_queue_pop (cmd_queue)) {
+#if 0
+        for (;;) {
+        retry:
+                len = g_async_queue_length (cmd_queue);
+                if (len <= 0) {
+                        //LOG("recvfrom error, will retry \n");
+                        usleep(500000);
+                        goto retry;
+                }
+                event = g_async_queue_pop (cmd_queue);
+#endif
             	char *cmd, *arg;
                 int i;
 
@@ -3381,15 +3431,15 @@ static gpointer cmd_handle(gpointer data)
                 }
 
                 if (strcmp(cmd, "help")) {
-                        printf("Invalid command\n");
+                        LOG("Invalid command\n");
                         goto done;
                 }
 
-                printf("Available commands:\n");
+                LOG("Available commands:\n");
 
                 for (i = 0; cmd_table[i].cmd; i++) {
                         if (cmd_table[i].desc)
-                                printf("  %s %-*s %s\n", cmd_table[i].cmd,
+                                LOG("  %s %-*s %s\n", cmd_table[i].cmd,
                                        (int)(25 - strlen(cmd_table[i].cmd)),
                                        cmd_table[i].arg ? : "",
                                        cmd_table[i].desc ? : "");
@@ -3424,10 +3474,12 @@ static gboolean signal_handler(GIOChannel *channel, GIOCondition condition,
 	switch (si.ssi_signo) {
 	case SIGINT:
 		if (input) {
+                    /*
 			rl_replace_line("", 0);
 			rl_crlf();
 			rl_on_new_line();
 			rl_redisplay();
+                    */
 			break;
 		}
 
@@ -3439,8 +3491,10 @@ static gboolean signal_handler(GIOChannel *channel, GIOCondition condition,
 		 */
 	case SIGTERM:
 		if (!terminated) {
+                    /*
 			rl_replace_line("", 0);
 			rl_crlf();
+                    */
 			g_main_loop_quit(main_loop);
 		}
 
@@ -3512,8 +3566,10 @@ static GOptionEntry options[] = {
 
 static void client_ready(GDBusClient *client, void *user_data)
 {
+    /*
 	if (!input)
 		input = setup_standard_input();
+    */
 }
 
 static int read_config(char *config)
@@ -3628,7 +3684,7 @@ int main(int argc, char *argv[])
 	g_dbus_client_set_ready_watch(client, client_ready, NULL);
 
         /* pooling the device status per 5s */
-        g_timeout_add_seconds(5, recurser_start, NULL);
+        //g_timeout_add_seconds(5, recurser_start, NULL);
 
         /* create server/client socket */
         server_fd = create_server_sock(SERVER);
@@ -3639,7 +3695,7 @@ int main(int argc, char *argv[])
         client_fd = create_client_sock(CLIENT);
 
         /* sniffer xingxiao device */
-        LOG("[Sock] S -> C: %s\n", "sniffer");
+        LOG("[Sock] S -> C: server_fd %d, %s\n", server_fd, "sniffer");
         sock_send_cmd(client_fd, CLIENT, "sniffer", strlen("sniffer")+1);
 
 	g_main_loop_run(main_loop);
@@ -3649,8 +3705,8 @@ int main(int argc, char *argv[])
 	if (input > 0)
 		g_source_remove(input);
 
-	rl_message("");
-	rl_callback_handler_remove();
+	//rl_message("");
+	//rl_callback_handler_remove();
 
 	dbus_connection_unref(dbus_conn);
 	g_main_loop_unref(main_loop);

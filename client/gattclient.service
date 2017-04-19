@@ -10,8 +10,8 @@ After=bluetooth.service
 [Service]
 #Type=dbus
 #BusName=org.bluez
-#ExecStart=/root/gattclient wlan0
-ExecStart=/bin/sh -c '/root/gattclient wlan0 2>&1 > /var/gattclient.log'
+ExecStart=/root/gattclient wlan0
+#ExecStart=/bin/sh -c '/root/gattclient wlan0 2>&1 > /var/gattclient.log'
 #ExecStart=/root/bluetoothctl eno1
 #NotifyAccess=main
 #WatchdogSec=10

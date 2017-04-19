@@ -30,7 +30,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include <readline/readline.h>
+//#include <readline/readline.h>
 
 #include "display.h"
 
@@ -40,7 +40,7 @@ void rl_printf(const char *fmt, ...)
 	bool save_input;
 	char *saved_line;
 	int saved_point;
-
+/*
 	save_input = !RL_ISSTATE(RL_STATE_DONE);
 
 	if (save_input) {
@@ -50,11 +50,13 @@ void rl_printf(const char *fmt, ...)
 		rl_replace_line("", 0);
 		rl_redisplay();
 	}
+*/
 
 	va_start(args, fmt);
 	vprintf(fmt, args);
 	va_end(args);
 
+        /*
 	if (save_input) {
 		rl_restore_prompt();
 		rl_replace_line(saved_line, 0);
@@ -62,6 +64,7 @@ void rl_printf(const char *fmt, ...)
 		rl_forced_update_display();
 		free(saved_line);
 	}
+        */
 }
 
 void rl_hexdump(const unsigned char *buf, size_t len)

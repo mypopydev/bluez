@@ -52,7 +52,7 @@ static void agent_prompt(const char *msg)
 	 * time before it releases the prompt, but we take a safe action. */
 	if (agent_saved_prompt)
 		return;
-
+/*
 	agent_saved_point = rl_point;
 	agent_saved_prompt = g_strdup(rl_prompt);
 
@@ -65,6 +65,7 @@ static void agent_prompt(const char *msg)
 
 	rl_replace_line("", 0);
 	rl_redisplay();
+*/
 }
 
 static void agent_release_prompt(void)
@@ -74,10 +75,12 @@ static void agent_release_prompt(void)
 
 	/* This will cause rl_expand_prompt to re-run over the last prompt, but
 	 * our prompt doesn't expand anyway. */
+        /*
 	rl_set_prompt(agent_saved_prompt);
 	rl_replace_line("", 0);
 	rl_point = agent_saved_point;
 	rl_redisplay();
+        */
 
 	g_free(agent_saved_prompt);
 	agent_saved_prompt = NULL;

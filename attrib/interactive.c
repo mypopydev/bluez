@@ -107,7 +107,7 @@ static char *get_prompt(void)
 static void set_state(enum state st)
 {
 	conn_state = st;
-	rl_set_prompt(get_prompt());
+	//rl_set_prompt(get_prompt());
 }
 
 static void events_handler(const uint8_t *pdu, uint16_t len, gpointer user_data)
@@ -370,7 +370,7 @@ static void char_read_by_uuid_cb(guint8 status, const guint8 *pdu,
 
 static void cmd_exit(int argcp, char **argvp)
 {
-	rl_callback_handler_remove();
+        //rl_callback_handler_remove();
 	g_main_loop_quit(event_loop);
 }
 
@@ -837,7 +837,7 @@ static void parse_line(char *line_read)
 	if (*line_read == '\0')
 		goto done;
 
-	add_history(line_read);
+	//add_history(line_read);
 
 	if (g_shell_parse_argv(line_read, &argcp, &argvp, NULL) == FALSE)
 		goto done;
@@ -865,7 +865,7 @@ static gboolean prompt_read(GIOChannel *chan, GIOCondition cond,
 		return FALSE;
 	}
 
-	rl_callback_read_char();
+	//rl_callback_read_char();
 
 	return TRUE;
 }
@@ -892,7 +892,8 @@ static char *completion_generator(const char *text, int state)
 static char **commands_completion(const char *text, int start, int end)
 {
 	if (start == 0)
-		return rl_completion_matches(text, &completion_generator);
+		//return rl_completion_matches(text, &completion_generator);
+                return NULL;
 	else
 		return NULL;
 }
@@ -934,15 +935,19 @@ static gboolean signal_handler(GIOChannel *channel, GIOCondition condition,
 
 	switch (si.ssi_signo) {
 	case SIGINT:
+                /*
 		rl_replace_line("", 0);
 		rl_crlf();
 		rl_on_new_line();
 		rl_redisplay();
+                */
 		break;
 	case SIGTERM:
 		if (__terminated == 0) {
+                        /*
 			rl_replace_line("", 0);
 			rl_crlf();
+                        */
 			g_main_loop_quit(event_loop);
 		}
 
@@ -1010,13 +1015,15 @@ int interactive(const char *src, const char *dst,
 	input = setup_standard_input();
 	signal = setup_signalfd();
 
+        /*
 	rl_attempted_completion_function = commands_completion;
 	rl_erase_empty_line = 1;
 	rl_callback_handler_install(get_prompt(), parse_line);
+        */
 
 	g_main_loop_run(event_loop);
 
-	rl_callback_handler_remove();
+	//rl_callback_handler_remove();
 	cmd_disconnect(0, NULL);
 	g_source_remove(input);
 	g_source_remove(signal);

@@ -38,8 +38,8 @@ client_bluetoothctl_SOURCES = client/main.c \
 					
 					
 client_bluetoothctl_LDADD = gdbus/libgdbus-internal.la @GLIB_LIBS@ @DBUS_LIBS@ lib/libbluetooth-internal.la \
-			src/libshared-glib.la \
-				-lreadline -lbluetooth
+			src/libshared-glib.la  -lbluetooth
+#				-lreadline -lbluetooth
 endif
 
 if MONITOR

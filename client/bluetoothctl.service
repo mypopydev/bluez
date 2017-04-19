@@ -11,8 +11,8 @@ After=bluetooth.service gattclient.service
 [Service]
 #Type=dbus
 #BusName=org.bluez
-#ExecStart=/root/bluetoothctl eth0
-ExecStart=/bin/sh -c '/root/bluetoothctl eth0 2>&1 > /var/bluetoothctl.log'
+ExecStart=/root/bluetoothctl eth0
+#ExecStart=/bin/sh -c '/root/bluetoothctl eth0 2>&1 > /var/bluetoothctl.log'
 #NotifyAccess=main
 #WatchdogSec=10
 #Restart=on-failure
