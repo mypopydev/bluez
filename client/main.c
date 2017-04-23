@@ -1146,7 +1146,7 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                          dev->pid = atoi(buf+8);
                          LOG("Destory pid : %d\n", dev->pid);
                          bt_device_process_close(async_queue, dev);
-                 } else if (match("DATA", buf)) {
+                 } else if (match("DATA", buf) && match(";", buf)) {
                          char address[18] = {0};
                          char value[64] = {0};
                          memcpy(address, buf, 17);
