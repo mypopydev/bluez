@@ -755,8 +755,8 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 }
                         }
-                        LOG(" <<<<<< OLD >>>>>>\n");
                         display_hash_table(device_hash);
+                        LOG(" <<<<<< OLD >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_NEW:
@@ -792,8 +792,8 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 }
                         }
-                        LOG(" <<<<<< NEW >>>>>>\n");
                         display_hash_table(device_hash);
+                        LOG(" <<<<<< NEW >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_DEL:
@@ -802,8 +802,8 @@ static gpointer state_handle(gpointer data)
                         g_hash_table_remove(device_hash,
                                             dev->address);
 
-                        LOG(" <<<<<< DEL >>>>>>\n");
 			display_hash_table(device_hash);
+                        LOG(" <<<<<< DEL >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_CHG:
@@ -814,8 +814,9 @@ static gpointer state_handle(gpointer data)
                                                 strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
-                        if (dev_type != TYPE_NONE && !find_device_by_name(device_hash, dev->name)) {
-                                /* XXX: find this device in hash table */
+                        device = g_hash_table_lookup(device_hash, dev->address);
+                        if (dev_type != TYPE_NONE && !device) {
+                                /* insert this device in hash table and connect */
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
                                 device->pid = -1;
@@ -840,10 +841,27 @@ static gpointer state_handle(gpointer data)
                                 default:
                                         break;
                                 }
+                        } else if (dev_type != TYPE_NONE && device && device->pid == -1) {
+                                /* the device in list but is not connected */
+                                switch (dev_type) {
+                                case TYPE_RBP:
+                                        trust_device(address);
+                                        connect_device(address, dev_type);
+                                        break;
+                                case TYPE_801B:
+                                        trust_device(address);
+                                        connect_device(address, dev_type);
+                                        break;
+                                case TYPE_601B:
+                                        trust_device(address);
+                                        connect_device(address, dev_type);
+                                        break;
+                                default:
+                                        break;
+                                }
                         }
-
-                        LOG(" <<<<<< CHG >>>>>>\n");
 			display_hash_table(device_hash);
+                        LOG(" <<<<<< CHG >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_RECONN:
@@ -931,8 +949,8 @@ static gpointer state_handle(gpointer data)
                         default:
                                 break;
                         }
-                        LOG(" <<<<< CONN >>>>>>\n");
 			display_hash_table(device_hash);
+                        LOG(" <<<<< CONN >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_DISCONN:
@@ -957,8 +975,8 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 }
                         }
-                        LOG(" <<<<<< DISCONN >>>>>>\n");
                         display_hash_table(device_hash);
+                        LOG(" <<<<<< DISCONN >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_PID_CREATE:
@@ -982,8 +1000,8 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 }
                         }
-                        LOG(" <<<<<< PROCESS >>>>>>\n");
                         display_hash_table(device_hash);
+                        LOG(" <<<<<< PROCESS >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_PID_CLOSE:
@@ -1009,8 +1027,8 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 }
                         }
-                        LOG(" <<<<<< CLOSE >>>>>>\n");
                         display_hash_table(device_hash);
+                        LOG(" <<<<<< CLOSE >>>>>>\n");
                 default:
                         break;
                 }
