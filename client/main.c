@@ -814,7 +814,7 @@ static gpointer state_handle(gpointer data)
                                                 strlen(dev->name),
                                                 device_keys,
                                                 NELEMS(device_keys));
-                        if (dev_type != TYPE_NONE && find_device_by_name(device_hash, dev->name)) {
+                        if (dev_type != TYPE_NONE && !find_device_by_name(device_hash, dev->name)) {
                                 /* XXX: find this device in hash table */
                                 dev->type = dev_type;
                                 device = g_slice_dup(Device, dev);
@@ -1670,6 +1670,11 @@ static void property_changed(GDBusProxy *proxy, const char *name,
                                 LOG("[" COLORED_CHG
                                                       "] Device %s %s\n", address, name);
                                 str = g_strdup_printf("Device %s", address);
+
+                                 Device *dev = g_slice_new0(Device);
+                                 snprintf(dev->name, sizeof(dev->name), "%s", name);
+                                 snprintf(dev->address, sizeof(dev->address), "%s", address);
+                                 bt_device_chg(async_queue, dev);
 			} else
 				str = g_strdup("");
 
