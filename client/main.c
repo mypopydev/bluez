@@ -1171,7 +1171,7 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                          char *tmp = strstr(buf, "DATA");
                          if (tmp)
                                  snprintf(value, 63, "%s", tmp+5);
-                         value[strlen(value) - 1] = 0;
+                         value[strlen(value)] = 0;
                          Device *dev = find_device_by_address(device_hash, address);
                          if (dev) {
                                  /* XXX: send data to server */
