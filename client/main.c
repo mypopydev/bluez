@@ -943,6 +943,14 @@ static gpointer state_handle(gpointer data)
                                 memset(cmd, 0, 128);
                                 snprintf(cmd, strlen("register-notify 0x13\n"), "register-notify 0x13\n");
                                 sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
+
+                                 /* XXX: FIXMEM Workround send data to server */
+                                 uint8_t value[128] =  {0};
+                                 unsigned int value1;
+                                 rand_r(&value1);
+                                 snprintf(value, 127, "%.2f", (value1%60 + 40)/10.0);
+                                 struct http_response *resp = send_data(TYPE_601B, dev->address, value);
+                                 http_response_free(resp);
                         }
                                 break;
 
@@ -3649,6 +3657,8 @@ int main(int argc, char *argv[])
         get_mac(argv[1], mac);
         //gat_mac("")
         read_config(CONFIG_FILE);
+
+        srand(time(NULL));
 
         /*
         struct http_response *resp = self_check();
