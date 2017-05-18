@@ -363,6 +363,9 @@ static void connect_device(char *bdaddr, int type)
         if (type == TYPE_RBP)
                 snprintf(cmd, strlen(bdaddr)+strlen("connect ")+2+strlen("type")+2,
                          "connect %s type %d", bdaddr, type);
+        else if (type == TYPE_601B)
+                snprintf(cmd, strlen(bdaddr)+strlen("connect 601B ")+1,
+                         "connect %s 601B", bdaddr);
         else
                 snprintf(cmd, strlen(bdaddr)+strlen("connect ")+1, "connect %s", bdaddr);
 
@@ -492,9 +495,10 @@ void release_value(gpointer data)
 char URL[128] = {0};
 #define URL_INTFACE "/i.ashx?"
 
-#define CONFIG_FILE "/root/bluetoothctl.cfg"
+//#define CONFIG_FILE "/root/bluetoothctl.cfg"
 //#define CONFIG_FILE "/home/barry/Project/bluez-dev/client/bluetoothctl.cfg"
 //#define CONFIG_FILE  "/home/pi/Project/bluez-dev/client/bluetoothctl.cfg"
+#define CONFIG_FILE "/home/media/Study/bluez-dev/client/bluetoothctl.cfg"
 
 struct http_response *self_check()
 {
@@ -750,6 +754,7 @@ static gpointer state_handle(gpointer data)
                                 case TYPE_601B:
                                         trust_device(address);
                                         connect_device(address, dev_type);
+                                        //pair_device(address);
                                         break;
                                 default:
                                         break;
@@ -787,6 +792,7 @@ static gpointer state_handle(gpointer data)
                                 case TYPE_601B:
                                         trust_device(address);
                                         connect_device(address, dev_type);
+                                        //pair_device(address);
                                         break;
                                 default:
                                         break;
@@ -837,6 +843,7 @@ static gpointer state_handle(gpointer data)
                                 case TYPE_601B:
                                         trust_device(address);
                                         connect_device(address, dev_type);
+                                        //pair_device(address);
                                         break;
                                 default:
                                         break;
@@ -855,6 +862,7 @@ static gpointer state_handle(gpointer data)
                                 case TYPE_601B:
                                         trust_device(address);
                                         connect_device(address, dev_type);
+                                        //pair_device(address);
                                         break;
                                 default:
                                         break;
@@ -920,9 +928,10 @@ static gpointer state_handle(gpointer data)
                                 /* wait cmd and recv the data */
                                 /*
                                  *  wait cmd and recv the data
-                                 *  register-notify 0x13
+                                 *  register-notify 0x12
                                  */
                         {
+                                //pair_device(dev->address);
                                 char client[128] = { 0 };
                                 char cmd[128] = { 0 };
                                 snprintf(&client[0], 127, "%s.%d", CLIENT, device->pid);
@@ -933,24 +942,28 @@ static gpointer state_handle(gpointer data)
                                 //sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
 
                                 //snprintf(cmd, strlen("register-notify 0x13")+1, "register-notify 0x13");
+                                /*
                                 snprintf(cmd, strlen("write-value -w 0x13 00 01 00\n"), "write-value -w 0x13 00 01 00\n");
                                 sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
 
                                 memset(cmd, 0, 128);
                                 snprintf(cmd, strlen("write-value -w 0x1b 00 02 00\n"), "write-value -w 0x1b 00 01 01\n");
                                 sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
+                                */
 
                                 memset(cmd, 0, 128);
-                                snprintf(cmd, strlen("register-notify 0x13\n"), "register-notify 0x13\n");
-                                sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
+                                snprintf(cmd, strlen("register-notify 0x12\n"), "register-notify 0x12\n");
+                                //sock_send_client_cmd(client_fd, client, cmd, strlen(cmd) + 1);
 
                                  /* XXX: FIXMEM Workround send data to server */
+                                /*
                                  uint8_t value[128] =  {0};
                                  unsigned int value1;
                                  rand_r(&value1);
                                  snprintf(value, 127, "%.2f", (value1%60 + 40)/10.0);
                                  struct http_response *resp = send_data(TYPE_601B, dev->address, value);
                                  http_response_free(resp);
+                                */
                         }
                                 break;
 
