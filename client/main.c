@@ -495,10 +495,10 @@ void release_value(gpointer data)
 char URL[128] = {0};
 #define URL_INTFACE "/i.ashx?"
 
-//#define CONFIG_FILE "/root/bluetoothctl.cfg"
+#define CONFIG_FILE "/root/bluetoothctl.cfg"
 //#define CONFIG_FILE "/home/barry/Project/bluez-dev/client/bluetoothctl.cfg"
 //#define CONFIG_FILE  "/home/pi/Project/bluez-dev/client/bluetoothctl.cfg"
-#define CONFIG_FILE "/home/media/Study/bluez-dev/client/bluetoothctl.cfg"
+//#define CONFIG_FILE "/home/media/Study/bluez-dev/client/bluetoothctl.cfg"
 
 struct http_response *self_check()
 {
@@ -761,7 +761,7 @@ static gpointer state_handle(gpointer data)
                                 }
                         }
                         display_hash_table(device_hash);
-                        LOG(" <<<<<< OLD >>>>>>\n");
+                        LOG(" ======= OLD >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_NEW:
@@ -799,7 +799,7 @@ static gpointer state_handle(gpointer data)
                                 }
                         }
                         display_hash_table(device_hash);
-                        LOG(" <<<<<< NEW >>>>>>\n");
+                        LOG(" ======= NEW >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_DEL:
@@ -809,7 +809,7 @@ static gpointer state_handle(gpointer data)
                                             dev->address);
 
 			display_hash_table(device_hash);
-                        LOG(" <<<<<< DEL >>>>>>\n");
+                        LOG(" ======= DEL >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_CHG:
@@ -869,7 +869,7 @@ static gpointer state_handle(gpointer data)
                                 }
                         }
 			display_hash_table(device_hash);
-                        LOG(" <<<<<< CHG >>>>>>\n");
+                        LOG(" ======= CHG >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_RECONN:
@@ -971,7 +971,7 @@ static gpointer state_handle(gpointer data)
                                 break;
                         }
 			display_hash_table(device_hash);
-                        LOG(" <<<<< CONN >>>>>>\n");
+                        LOG(" ======= CONN >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_DISCONN:
@@ -997,7 +997,7 @@ static gpointer state_handle(gpointer data)
                                 }
                         }
                         display_hash_table(device_hash);
-                        LOG(" <<<<<< DISCONN >>>>>>\n");
+                        LOG(" ======= DISCONN >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_PID_CREATE:
@@ -1022,7 +1022,7 @@ static gpointer state_handle(gpointer data)
                                 }
                         }
                         display_hash_table(device_hash);
-                        LOG(" <<<<<< PROCESS >>>>>>\n");
+                        LOG(" ======= PROCESS >>>>>>\n");
                         break;
 
                 case BT_EVENT_DEVICE_PID_CLOSE:
@@ -1049,7 +1049,7 @@ static gpointer state_handle(gpointer data)
                                 }
                         }
                         display_hash_table(device_hash);
-                        LOG(" <<<<<< CLOSE >>>>>>\n");
+                        LOG(" ======= CLOSE >>>>>>\n");
                 default:
                         break;
                 }
@@ -1185,6 +1185,16 @@ static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                          dev->pid = atoi(buf+8);
                          LOG("Destory pid : %d\n", dev->pid);
                          bt_device_process_close(async_queue, dev);
+                 } else if (match("BT601", buf)) {
+                         char value[64] = {0};
+                         char address[18] = {0};
+                         memcpy(address, buf+6, 17);
+                         char *tmp = strstr(buf, "VALUE");
+                         if (tmp)
+                                 snprintf(value, 63, "%s", tmp+6);
+                         /* XXX: send data to server */
+                         struct http_response *resp = send_data(TYPE_601B, address, value);
+                         http_response_free(resp);
                  } else if (match("DATA", buf) && match(";", buf)) {
                          char address[18] = {0};
                          char value[64] = {0};
