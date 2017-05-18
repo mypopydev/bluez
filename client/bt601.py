@@ -4,6 +4,7 @@ import time
 import socket
 import sys
 import os
+import syslog
 
 UNIX_SER="/tmp/ud_bluetooth_main"
 
@@ -17,48 +18,48 @@ def sendMessage(message):
     s = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     s.connect(UNIX_SER)
     s.send(message)
-    print("message ", message)
+    syslog.syslog("message " + str(message))
     s.close()
 
 def bt601Conn(DEVICE):
-    print("address: ", DEVICE)
+    syslog.syslog("address: ",+ str(DEVICE))
 
     # Run gatttool interactively.
-    print("Run gatttool...")
+    syslog.syslog("Run gatttool...")
     gatt = pexpect.spawn("gatttool -I")
 
     # Connect to the device.
-    print("Connecting to ", DEVICE)
+    syslog.syslog("Connecting to " + str(DEVICE))
     gatt.sendline("connect {0}".format(DEVICE))
     gatt.expect("Connection successful", timeout=5)
-    print(" Connected!")
+    syslog.syslog(" Connected!")
 
 def bt601GetVal(DEVICE):
-    print("address: ", DEVICE)
+    syslog.syslog("address: " + str(DEVICE))
 
     # Run gatttool interactively.
-    print("Run gatttool...")
+    syslog.syslog("Run gatttool...")
     gatt = pexpect.spawn("gatttool -I")
 
     # Connect to the device.
     try:
-        print("Connecting to ", DEVICE)
+        syslog.syslog("Connecting to " + str(DEVICE))
         gatt.sendline("connect {0}".format(DEVICE))
         gatt.expect("Connection successful", timeout=5)
-        print(" Connected!")
+        syslog.syslog(" Connected!")
     except pexpect.TIMEOUT:
-        print(" Conneccting time out!")
+        syslog.syslog(" Conneccting time out!")
         #sys.exit(1);
         os._exit(1)
 
     try:
         gatt.expect("Notification handle = 0x0012 value: 03 ", timeout=30)
         gatt.expect("\r\n", timeout=10)
-        print("Value: ", gatt.before)
-        print("Value 12: ", gatt.before[33:35], hexStrToInt(gatt.before[33:35]))
-        sendMessage("BT601 " + DEVICE + " VALUE " + str(hexStrToInt(gatt.before[33:35])))
+        syslog.syslog("Value: ", gatt.before)
+        syslog.syslog("Value 12: ", gatt.before[33:35], hexStrToInt(gatt.before[33:35]))
+        sendMessage("BT601 " + str(DEVICE) + " VALUE " + str(hexStrToInt(gatt.before[33:35])))
     except pexpect.TIMEOUT:
-        print(" Get value time out!")
+        syslog.syslog(" Get value time out!")
         #sys.exit(1);
         os._exit(1)
     #print(float(hexStrToInt(child.before[0:5]))/100),
