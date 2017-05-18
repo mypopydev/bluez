@@ -22,7 +22,7 @@ def sendMessage(message):
     s.close()
 
 def bt601Conn(DEVICE):
-    syslog.syslog("address: ",+ str(DEVICE))
+    syslog.syslog("address: " + str(DEVICE))
 
     # Run gatttool interactively.
     syslog.syslog("Run gatttool...")
@@ -32,7 +32,7 @@ def bt601Conn(DEVICE):
     syslog.syslog("Connecting to " + str(DEVICE))
     gatt.sendline("connect {0}".format(DEVICE))
     gatt.expect("Connection successful", timeout=5)
-    syslog.syslog(" Connected!")
+    syslog.syslog("Connected!")
 
 def bt601GetVal(DEVICE):
     syslog.syslog("address: " + str(DEVICE))
@@ -45,23 +45,23 @@ def bt601GetVal(DEVICE):
     try:
         syslog.syslog("Connecting to " + str(DEVICE))
         gatt.sendline("connect {0}".format(DEVICE))
-        gatt.expect("Connection successful", timeout=5)
-        syslog.syslog(" Connected!")
+        gatt.expect("Connection successful", timeout=10)
+        syslog.syslog("Connected!")
     except pexpect.TIMEOUT:
-        syslog.syslog(" Conneccting time out!")
-        #sys.exit(1);
-        os._exit(1)
+        syslog.syslog("Conneccting time out!")
+        sys.exit(1);
+        #os._exit(1)
 
     try:
-        gatt.expect("Notification handle = 0x0012 value: 03 ", timeout=30)
+        gatt.expect("Notification handle = 0x0012 value: 03 ", timeout=45)
         gatt.expect("\r\n", timeout=10)
-        syslog.syslog("Value: ", gatt.before)
-        syslog.syslog("Value 12: ", gatt.before[33:35], hexStrToInt(gatt.before[33:35]))
+        syslog.syslog("Value: " + str(gatt.before))
+        syslog.syslog("Value 12: " + str(gatt.before[33:35]) + str(hexStrToInt(gatt.before[33:35])))
         sendMessage("BT601 " + str(DEVICE) + " VALUE " + str(hexStrToInt(gatt.before[33:35])))
     except pexpect.TIMEOUT:
-        syslog.syslog(" Get value time out!")
-        #sys.exit(1);
-        os._exit(1)
+        syslog.syslog("Get value time out!")
+        sys.exit(1);
+        #os._exit(1)
     #print(float(hexStrToInt(child.before[0:5]))/100),
 
 
