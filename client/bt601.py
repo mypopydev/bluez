@@ -3,20 +3,21 @@ import pexpect
 import time
 import socket
 import sys
+import os
 
 UNIX_SER="/tmp/ud_bluetooth_main"
 
-# function to transform hex string like "0a cd" into signed integer
+# function to transform hex string like "0a" into signed integer
 def hexStrToInt(hexstr):
-    val = int(hexstr[0:2],16) + (int(hexstr[3:5],16)<<8)
-    if ((val&0x8000)==0x8000): # treat signed 16bits
-        val = -((val^0xffff)+1)
+    val = int(hexstr[0:2],16)
+    val = (val * 6.0 - 20)/100.0
     return val
 
 def sendMessage(message):
-    s = socket.socket(socket.AF_UNIX)
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     s.connect(UNIX_SER)
     s.send(message)
+    print("message ", message)
     s.close()
 
 def bt601Conn(DEVICE):
@@ -33,7 +34,6 @@ def bt601Conn(DEVICE):
     print(" Connected!")
 
 def bt601GetVal(DEVICE):
-    #DEVICE = "00:32:40:08:00:12"
     print("address: ", DEVICE)
 
     # Run gatttool interactively.
@@ -48,23 +48,19 @@ def bt601GetVal(DEVICE):
         print(" Connected!")
     except pexpect.TIMEOUT:
         print(" Conneccting time out!")
-        sys.exit(1);
+        #sys.exit(1);
+        os._exit(1)
 
-    #while True:
-
-    # Accelerometer
-    #gatt.sendline("char-write-req 0x13 0100")
-    #gatt.expect("Notification handle = ", timeout=30)
-    #print("Value: "),
-    #print(gatt.before)
     try:
         gatt.expect("Notification handle = 0x0012 value: 03 ", timeout=30)
         gatt.expect("\r\n", timeout=10)
         print("Value: ", gatt.before)
-        sendMessage(DEVICE + " DATA " + gatt.before)
+        print("Value 12: ", gatt.before[33:35], hexStrToInt(gatt.before[33:35]))
+        sendMessage("BT601 " + DEVICE + " VALUE " + str(hexStrToInt(gatt.before[33:35])))
     except pexpect.TIMEOUT:
         print(" Get value time out!")
-        sys.exit(1);
+        #sys.exit(1);
+        os._exit(1)
     #print(float(hexStrToInt(child.before[0:5]))/100),
 
 
