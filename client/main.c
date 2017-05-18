@@ -1140,7 +1140,7 @@ static void disconnect_handler(DBusConnection *connection, void *user_data)
 static gboolean server_handler(GIOChannel *channel, GIOCondition condition,
                                gpointer user_data)
 {
-        char buf[128];
+        char buf[128] = {0};
         ssize_t numBytes;
         struct sockaddr_un claddr;
         socklen_t len;
