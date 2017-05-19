@@ -359,6 +359,7 @@ static void connect_device(char *bdaddr, int type)
         LOG("S -> C: %s\n", event->cmd);
         g_async_queue_push (cmd_queue, event);
         */
+        char address[18] = {0};
         char cmd[128] = {0};
         if (type == TYPE_RBP)
                 snprintf(cmd, strlen(bdaddr)+strlen("connect ")+2+strlen("type")+2,
@@ -374,6 +375,7 @@ static void connect_device(char *bdaddr, int type)
         sock_send_cmd(client_fd, CLIENT, cmd, strlen(cmd));
 
         /* XXX: notify the server, work for bluetooth device  */
+        snprintf(address, 17, "%s", bdaddr);
         struct http_response *resp = send_data(type, bdaddr, "btnew");
         http_response_free(resp);
 }
@@ -536,7 +538,7 @@ struct http_response *send_data(int index, char *devmac, char *val)
         char *enc = NULL;
         char cmd[128] = {0};
 
-        char date[20];
+        char date[20] = {0};
 	struct timeval tv;
 
 	/* print the timestamp */
@@ -850,6 +852,7 @@ static gpointer state_handle(gpointer data)
                                         break;
                                 }
                         } else if (dev_type != TYPE_NONE && device && device->pid == -1) {
+                                address = strndup(device->address, 17);
                                 /* the device in list but is not connected */
                                 switch (dev_type) {
                                 case TYPE_RBP:
