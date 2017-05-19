@@ -546,6 +546,7 @@ struct http_response *send_data(int index, char *devmac, char *val)
 
         /* n(int),e(String),t(Long),d(String);n,e,t,d */
         snprintf(cmd, 127, "{n=%d,e=%s,t=%s,d=%s;}", index, devmac, date, val);
+        LOG("URL %s, cmd %s\n", url, cmd);
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=02&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         http_resp = http_get(url, NULL);
@@ -3643,9 +3644,9 @@ static int read_config(char *config)
                 g_error (error->message);
                 return -1;
         }
-        printf("[URL]\n");
+        LOG("[URL]\n");
         url = g_key_file_get_string(keyfile, "URL", "HTTP_SERVER", NULL);
-        printf("URL:%s\n", url);
+        LOG("URL:%s\n", url);
 
         snprintf(URL, strlen(url)+1, "%s", url);
 }
