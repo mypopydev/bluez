@@ -501,6 +501,38 @@ char URL[128] = {0};
 //#define CONFIG_FILE "/home/barry/Project/bluez-dev/client/bluetoothctl.cfg"
 //#define CONFIG_FILE  "/home/pi/Project/bluez-dev/client/bluetoothctl.cfg"
 //#define CONFIG_FILE "/home/media/Study/bluez-dev/client/bluetoothctl.cfg"
+#include <stdio.h>
+#include <curl/curl.h>
+
+char *curl_http_get(char *url, char *pri)
+{
+        CURL *curl;
+        CURLcode res;
+
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+
+        curl = curl_easy_init();
+        if(curl) {
+                curl_easy_setopt(curl, CURLOPT_URL, url);
+
+                curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+
+                /* Perform the request, res will get the return code */
+                res = curl_easy_perform(curl);
+
+                /* Check for errors */
+                if(res != CURLE_OK)
+                        LOG("curl_easy_perform() failed: %s\n",
+                            curl_easy_strerror(res));
+
+                /* always cleanup */
+                curl_easy_cleanup(curl);
+        }
+
+        curl_global_cleanup();
+
+        return NULL;
+}
 
 struct http_response *self_check()
 {
@@ -521,7 +553,8 @@ struct http_response *self_check()
         snprintf(cmd, 127, "{t=%s;}", date);
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=01&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
-        http_resp = http_get(url, NULL);
+        //http_resp = http_get(url, NULL);
+        curl_http_get(url, NULL);
         g_free(enc);
         if (http_resp) {
                 LOG("header %s\n", http_resp->request_headers);
@@ -551,7 +584,8 @@ struct http_response *send_data(int index, char *devmac, char *val)
         LOG("URL %s, cmd %s\n", url, cmd);
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=02&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
-        http_resp = http_get(url, NULL);
+        //http_resp = http_get(url, NULL);
+        curl_http_get(url, NULL);
         LOG("URL %s\n", url);
         g_free(enc);
         if (http_resp) {
