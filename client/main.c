@@ -517,6 +517,9 @@ char *curl_http_get(char *url, char *pri)
 
                 curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
+                /* only reuse addresses for a very short time */
+                curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, 2L);
+
                 /* Perform the request, res will get the return code */
                 res = curl_easy_perform(curl);
 
