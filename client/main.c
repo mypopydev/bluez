@@ -212,7 +212,7 @@ static int query_row(void *send_sucess, int argc, char **argv, char **azColName)
         for (i=0; i<argc; i++) {
                 /* XXX: try to send it to server and if sucess, delete the row */
                 LOG("%s = %s ", azColName[i], argv[i] ? argv[i] : "NULL");
-                if (i==3 && curl_http_get(argv[3], NULL) == CURLE_OK) {
+                if (i==2 && argv[2]!= NULL && curl_http_get(argv[2], NULL) == CURLE_OK) {
                     *flag = 1;
                     return 0;
                 }
@@ -273,7 +273,6 @@ sqlite3 * init_msg()
         if (!have_table) {
                 /* create SQL statement */
                 sql = "CREATE TABLE bt_msg("            \
-                        "id INT PRIMARY KEY,             "      \
                         "date           TEXT    NOT NULL,"      \
                         "cmd            TEXT    NOT NULL,"      \
                         "url            TEXT    NOT NULL);";
