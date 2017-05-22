@@ -58,6 +58,8 @@
 #include <sys/time.h>
 #include <ctype.h>
 
+#include <curl/curl.h>
+
 /* String display constants */
 #define COLORED_NEW	COLOR_GREEN "NEW" COLOR_OFF
 #define COLORED_CHG	COLOR_YELLOW "CHG" COLOR_OFF
@@ -105,6 +107,202 @@ GHashTable *device_hash = NULL;
 
 #define MAX_THREADS 128
 GThreadPool *thread_pool = NULL;
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sqlite3.h>
+
+sqlite3 *db = NULL;
+
+static int create_table(void *not_used, int argc, char **argv, char **azColName)
+{
+        int i;
+        LOG("%s\n",__FUNCTION__);
+        for (i=0; i<argc; i++) {
+                LOG("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+        }
+        LOG("\n");
+        return 0;
+}
+
+static int query_table(void *have_table, int argc, char **argv, char **azColName)
+{
+        int i;
+        int *flag = (int *)have_table;
+        LOG("%s\n",__FUNCTION__);
+        for (i=0; i<argc; i++) {
+                LOG("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+                if (atoi(argv[i]) != 0) {
+                        *flag = 1;
+                        return 0;
+                }
+        }
+        LOG("\n");
+        return 0;
+}
+
+/* insert into bt_msg (data, cmd, url) values(data, cmd, url); */
+static int insert_row(void *have_table, int argc, char **argv, char **azColName)
+{
+        int i;
+        LOG("%s\n",__FUNCTION__);
+        for (i=0; i<argc; i++) {
+                LOG("%s = %s \n", azColName[i], argv[i] ? argv[i] : "NULL");
+        }
+        LOG("\n");
+        return 0;
+}
+
+int insert_msg(sqlite3 *db, char *date, char *cmd, char *url)
+{
+        char sql[1024] = {0};
+        char *zErrMsg = 0;
+        int  rc;
+
+        snprintf(sql, 1023,  "insert into bt_msg (date, cmd, url) values(\"%s\", \"%s\", \"%s\");", date, cmd, url);
+        /* Execute SQL statement */
+        rc = sqlite3_exec(db, sql, insert_row, NULL, &zErrMsg);
+        if (rc != SQLITE_OK) {
+                LOG("SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+        } else {
+                LOG("Insert msg successfully\n");
+        }
+
+        return 0;
+}
+
+/* delete from bt_msg where rowid in (select rowid from bt_msg order by rowid asc limit 1); */
+static int delete_row(void *have_table, int argc, char **argv, char **azColName)
+{
+        int i;
+        LOG("%s\n",__FUNCTION__);
+        for (i=0; i<argc; i++) {
+                LOG("%s = %s \n", azColName[i], argv[i] ? argv[i] : "NULL");
+        }
+        LOG("\n");
+        return 0;
+}
+
+int delete_msg(sqlite3 *db)
+{
+        char *sql = "delete from bt_msg where rowid in (select rowid from bt_msg order by rowid asc limit 1);";
+        char *zErrMsg = 0;
+        int  rc;
+
+        /* Execute SQL statement */
+        rc = sqlite3_exec(db, sql, delete_row, NULL, &zErrMsg);
+        if (rc != SQLITE_OK) {
+                LOG("SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+        } else {
+                LOG("Delete msg successfully\n");
+        }
+
+        return 0;
+}
+
+/* select * from bt_msg order by rowid asc limit 1; */
+static int query_row(void *send_sucess, int argc, char **argv, char **azColName)
+{
+        int i;
+        int *flag = (int *)send_sucess;
+
+        LOG("%s\n",__FUNCTION__);
+        for (i=0; i<argc; i++) {
+                /* XXX: try to send it to server and if sucess, delete the row */
+                LOG("%s = %s ", azColName[i], argv[i] ? argv[i] : "NULL");
+                if (i==3 && curl_http_get(argv[3], NULL) == CURLE_OK) {
+                    *flag = 1;
+                    return 0;
+                }
+        }
+
+        LOG("\n");
+        return 0;
+}
+
+int query_msg(sqlite3 *db, void *send_sucess)
+{
+        char *sql = "select * from bt_msg order by rowid asc limit 1;";
+        char *zErrMsg = 0;
+        int  rc;
+
+        /* Execute SQL statement */
+        rc = sqlite3_exec(db, sql, query_row, send_sucess, &zErrMsg);
+        if (rc != SQLITE_OK) {
+                LOG("SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+        } else {
+                LOG("Query msg successfully\n");
+        }
+
+        return 0;
+}
+
+int init_msg(sqlite3 *db)
+{
+        char *zErrMsg = 0;
+        int  rc;
+        char *sql;
+        int have_table = 0;
+
+        /* open database */
+        rc = sqlite3_open("test.db", &db);
+        if (rc) {
+                LOG("Can't open database: %s\n", sqlite3_errmsg(db));
+                return(0);
+        } else {
+                LOG("Opened database successfully\n");
+        }
+
+        /* create the table */
+        sql = "SELECT count(*) FROM sqlite_master WHERE TYPE =\'table\' AND NAME =\"bt_msg\" ";
+        /* Execute SQL statement */
+        rc = sqlite3_exec(db, sql, query_table, &have_table, &zErrMsg);
+        if (rc != SQLITE_OK) {
+                LOG("SQL error: %s\n", zErrMsg);
+                sqlite3_free(zErrMsg);
+        } else {
+                LOG("Query table successfully\n");
+        }
+
+        /* create table if it't not exist */
+        if (!have_table) {
+                /* create SQL statement */
+                sql = "CREATE TABLE bt_msg("            \
+                        "id INT PRIMARY KEY     NOT NULL,"      \
+                        "date           TEXT    NOT NULL,"      \
+                        "cmd            TEXT    NOT NULL,"      \
+                        "url            TEXT    NOT NULL);";
+
+                /* Execute SQL statement */
+                rc = sqlite3_exec(db, sql, create_table, 0, &zErrMsg);
+                if (rc != SQLITE_OK) {
+                        LOG("SQL error: %s\n", zErrMsg);
+                        sqlite3_free(zErrMsg);
+                } else {
+                        LOG("Table created successfully\n");
+                }
+        }
+
+        //sqlite3_close(db);
+        //return 0;
+}
+
+static gboolean send_msg(gpointer data)
+{
+        int send_sucess = 0;
+
+        do {
+            query_msg(db, &send_sucess);
+            if (send_sucess)
+                    delete_msg(db);
+        } while (send_sucess == 1);
+
+        return TRUE;
+}
+
 
 struct device_key {
         enum BTTYPE type;
@@ -502,9 +700,9 @@ char URL[128] = {0};
 //#define CONFIG_FILE  "/home/pi/Project/bluez-dev/client/bluetoothctl.cfg"
 //#define CONFIG_FILE "/home/media/Study/bluez-dev/client/bluetoothctl.cfg"
 #include <stdio.h>
-#include <curl/curl.h>
 
-char *curl_http_get(char *url, char *pri)
+
+int curl_http_get(char *url, char *pri)
 {
         CURL *curl;
         CURLcode res;
@@ -520,6 +718,9 @@ char *curl_http_get(char *url, char *pri)
                 /* only reuse addresses for a very short time */
                 curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, 2L);
 
+                /* complete within 10 seconds */
+                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+
                 /* Perform the request, res will get the return code */
                 res = curl_easy_perform(curl);
 
@@ -534,7 +735,7 @@ char *curl_http_get(char *url, char *pri)
 
         curl_global_cleanup();
 
-        return NULL;
+        return res;
 }
 
 struct http_response *self_check()
@@ -588,7 +789,10 @@ struct http_response *send_data(int index, char *devmac, char *val)
         enc = g_base64_encode(cmd, strlen(cmd));
         snprintf(url, 1023, "%s%sg=%s&a=02&s=%ld&p=%s", URL,URL_INTFACE, mac, cur_time, enc);
         //http_resp = http_get(url, NULL);
-        curl_http_get(url, NULL);
+        if (curl_http_get(url, NULL) != CURLE_OK) {
+                /* write the value to database */
+                insert_msg(db, date, cmd, url);
+        }
         LOG("URL %s\n", url);
         g_free(enc);
         if (http_resp) {
@@ -3717,6 +3921,8 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
+        init_msg(db);
+
         //get_mac("eno1", mac);
         get_mac(argv[1], mac);
         //gat_mac("")
@@ -3780,8 +3986,8 @@ int main(int argc, char *argv[])
 
 	g_dbus_client_set_ready_watch(client, client_ready, NULL);
 
-        /* pooling the device status per 5s */
-        //g_timeout_add_seconds(5, recurser_start, NULL);
+        /* pooling the msg data base per 30s */
+        g_timeout_add_seconds(45, send_msg, NULL);
 
         /* create server/client socket */
         server_fd = create_server_sock(SERVER);
