@@ -178,7 +178,7 @@ static int delete_row(void *have_table, int argc, char **argv, char **azColName)
         int i;
         LOG("%s\n",__FUNCTION__);
         for (i=0; i<argc; i++) {
-                LOG("%s = %s \n", azColName[i], argv[i] ? argv[i] : "NULL");
+                LOG("  %s = %s \n", azColName[i], argv[i] ? argv[i] : "NULL");
         }
         LOG("\n");
         return 0;
@@ -211,7 +211,7 @@ static int query_row(void *send_sucess, int argc, char **argv, char **azColName)
         LOG("%s\n",__FUNCTION__);
         for (i=0; i<argc; i++) {
                 /* XXX: try to send it to server and if sucess, delete the row */
-                LOG("%s = %s ", azColName[i], argv[i] ? argv[i] : "NULL");
+                LOG("   %s = %s \n", azColName[i], argv[i] ? argv[i] : "NULL");
                 if (i==2 && argv[2]!= NULL && curl_http_get(argv[2], NULL) == CURLE_OK) {
                     *flag = 1;
                     return 0;
@@ -295,6 +295,7 @@ static gboolean send_msg(gpointer data)
         int send_sucess = 0;
 
         do {
+            send_sucess = 0;
             query_msg(db, &send_sucess);
             if (send_sucess) {
                     delete_msg(db);
