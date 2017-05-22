@@ -163,7 +163,7 @@ int insert_msg(sqlite3 *db, char *date, char *cmd, char *url)
         /* Execute SQL statement */
         rc = sqlite3_exec(db, sql, insert_row, NULL, &zErrMsg);
         if (rc != SQLITE_OK) {
-                LOG("SQL error: %s\n", zErrMsg);
+                LOG("SQL error: %s %s\n", zErrMsg, sql);
                 sqlite3_free(zErrMsg);
         } else {
                 LOG("Insert msg successfully\n");
@@ -193,7 +193,7 @@ int delete_msg(sqlite3 *db)
         /* Execute SQL statement */
         rc = sqlite3_exec(db, sql, delete_row, NULL, &zErrMsg);
         if (rc != SQLITE_OK) {
-                LOG("SQL error: %s\n", zErrMsg);
+                LOG("SQL error: %s %s\n", zErrMsg, sql);
                 sqlite3_free(zErrMsg);
         } else {
                 LOG("Delete msg successfully\n");
@@ -231,7 +231,7 @@ int query_msg(sqlite3 *db, void *send_sucess)
         /* Execute SQL statement */
         rc = sqlite3_exec(db, sql, query_row, send_sucess, &zErrMsg);
         if (rc != SQLITE_OK) {
-                LOG("SQL error: %s\n", zErrMsg);
+                LOG("SQL error: %s %s\n", zErrMsg, sql);
                 sqlite3_free(zErrMsg);
         } else {
                 LOG("Query msg successfully\n");
@@ -240,8 +240,9 @@ int query_msg(sqlite3 *db, void *send_sucess)
         return 0;
 }
 
-int init_msg(sqlite3 *db)
+sqlite3 * init_msg()
 {
+        sqlite3 *db = NULL;
         char *zErrMsg = 0;
         int  rc;
         char *sql;
@@ -271,7 +272,7 @@ int init_msg(sqlite3 *db)
         if (!have_table) {
                 /* create SQL statement */
                 sql = "CREATE TABLE bt_msg("            \
-                        "id INT PRIMARY KEY     NOT NULL,"      \
+                        "id INT PRIMARY KEY,             "      \
                         "date           TEXT    NOT NULL,"      \
                         "cmd            TEXT    NOT NULL,"      \
                         "url            TEXT    NOT NULL);";
@@ -288,6 +289,7 @@ int init_msg(sqlite3 *db)
 
         //sqlite3_close(db);
         //return 0;
+        return db;
 }
 
 static gboolean send_msg(gpointer data)
@@ -3921,7 +3923,7 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 
-        init_msg(db);
+        db = init_msg();
 
         //get_mac("eno1", mac);
         get_mac(argv[1], mac);
