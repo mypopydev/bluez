@@ -218,6 +218,7 @@ static int query_row(void *send_sucess, int argc, char **argv, char **azColName)
                 }
         }
 
+        *flag = 0;
         LOG("\n");
         return 0;
 }
@@ -287,8 +288,6 @@ sqlite3 * init_msg()
                 }
         }
 
-        //sqlite3_close(db);
-        //return 0;
         return db;
 }
 
@@ -298,8 +297,9 @@ static gboolean send_msg(gpointer data)
 
         do {
             query_msg(db, &send_sucess);
-            if (send_sucess)
+            if (send_sucess) {
                     delete_msg(db);
+            }
         } while (send_sucess == 1);
 
         return TRUE;
